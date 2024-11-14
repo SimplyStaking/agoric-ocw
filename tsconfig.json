@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./",
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "allowJs": true,
+    "checkJs": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": false,
+    "downlevelIteration": true,
+    "strictNullChecks": true,
+    "noImplicitThis": true,
+    "sourceMap": true
+  },
+  "include": ["scripts", "src", "test"]
+}

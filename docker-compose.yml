@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  agoricocw:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=production
+    command: ["yarn", "start"]
