@@ -14,4 +14,4 @@ RUN yarn install --frozen-lockfile
 COPY . .
 
 # Run the application
-CMD ["yarn", "start"]
+CMD ["node_modules/.bin/tsx", "./src/index.ts"]

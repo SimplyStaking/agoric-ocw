@@ -5,6 +5,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    stop_signal: SIGTERM
+    stop_grace_period: 30s
+    restart: always
+    logging:
+      driver: journald
+    ports:
+      - "3011:3011"
     environment:
       - NODE_ENV=production
-    command: ["yarn", "start"]
+    command: ["node_modules/.bin/tsx", "./src/index.ts"]
