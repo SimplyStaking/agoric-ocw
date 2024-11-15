@@ -54,6 +54,7 @@ function createWebSocket(chain: ChainConfig) {
     setRpcAlive(chain.name, false)
 
     setTimeout(() => {
+      providers[chain.name] = makeWebSocketProvider(chain);
       listen(chain);
     }, RPC_RECONNECT_DELAY * 1000);
   });
@@ -86,7 +87,7 @@ export const getWsProvider = (chain: ChainConfig): WebSocketProvider => {
     logger.debug(`Creating new Websocket provider client instance for ${chain.name}.`);
     providers[chain.name] = makeWebSocketProvider(chain);
   } else {
-    logger.debug('Using existing Websocket provider client instance for ${chain.name}.');
+    logger.debug(`Using existing Websocket provider client instance for ${chain.name}.`);
   }
 
   return providers[chain.name];
