@@ -2,11 +2,13 @@ import { ethers } from 'ethers';
 import { processCCTPBurnEventLog } from './processor';
 import { logger } from './utils/logger';
 import { submitToAgoric } from './submitter';
-import { setRpcAlive, setRpcBlockHeight } from './metrics';
-import { EVENT_ABI, chainConfig } from "./config/config";
-import { ChainConfig, DepositForBurnEvent, Hex } from './types';
+import { setAgoricActiveRpc, setRpcAlive, setRpcBlockHeight } from './metrics';
+import { ACTIVE_AGORIC_RPC, ENV, EVENT_ABI, chainConfig, getChainFromConfig, nextActiveAgoricRPC } from "./config/config";
+import { ChainConfig, DepositForBurnEvent, Hex, TransactionStatus } from './types';
 import { ContractEventPayload } from 'ethers';
 import { getWsProvider } from './lib/evm-client';
+import { vStoragePolicy } from './lib/agoric';
+import { getTransactionsToBeSentForChain } from './lib/db';
 
 /**
  * Listens for `DepositForBurn` events and new blocks, and handles reconnections on error.
@@ -16,50 +18,69 @@ export function listen(chain: ChainConfig) {
   const { contractAddress, name, rpcUrl } = chain;
 
   let wsProvider = getWsProvider(chain)
-  
+
   const contract = new ethers.Contract(contractAddress, EVENT_ABI, wsProvider);
+
+  logger.debug(`Listening for events on contract ${contractAddress} on ${name}`)
 
   // Listen for `DepositForBurn` events and process them
   contract.on("DepositForBurn",
-    async (nonce, burnToken, depositor, amount, mintRecipient, destinationDomain, destinationTokenMessenger, destinationCaller, event:ContractEventPayload) => {
+    async (nonce, burnToken, depositor, amount, mintRecipient, destinationDomain, destinationTokenMessenger, destinationCaller, event: ContractEventPayload) => {
       try {
-          if (Number(destinationDomain) === 4) { // Filter by specific destination domain
-            setRpcAlive(name, true);
+        if (Number(destinationDomain) === 4) { // Filter by specific destination domain
+          setRpcAlive(name, true);
 
-            // Create a log object with details needed for processing
-            const log: DepositForBurnEvent = {
-              amount, mintRecipient, destinationDomain, destinationTokenMessenger,
-              transactionHash: event.log.transactionHash as Hex,
-              blockHash: event.log.blockHash as Hex,
-              blockNumber: BigInt(event.log.blockNumber),
-              removed: event.log.removed,
-            };
+          // Create a log object with details needed for processing
+          const log: DepositForBurnEvent = {
+            amount, mintRecipient, destinationDomain, destinationTokenMessenger,
+            transactionHash: event.log.transactionHash as Hex,
+            blockHash: event.log.blockHash as Hex,
+            blockNumber: BigInt(event.log.blockNumber),
+            removed: event.log.removed,
+            blockTimestamp: BigInt(Date.now())
+          };
 
-            // Process the event and submit if evidence is found
-            const evidence = await processCCTPBurnEventLog(log, name);
-            if (evidence) {
-              await submitToAgoric(evidence);
-            }
-          }
-          else {
-            logger.debug(`NOT FOR NOBLE from ${chain.name}: ${event.log.transactionHash}`)
-          }
+          // Process the event and submit if evidence is found
+          await processCCTPBurnEventLog(log, name);
+        }
+        else {
+          logger.debug(`NOT FOR NOBLE from ${chain.name}: ${event.log.transactionHash}`)
+        }
       } catch (err) {
         logger.error("Error while handling logs:", err);
       }
     });
 
   // Listen for new blocks
-  wsProvider.on("block", (blockNumber) => {
+  wsProvider.on("block", async (blockNumber) => {
     setRpcAlive(name, true);
     setRpcBlockHeight(name, blockNumber)
+    logger.debug(`New block from ${chain.name}: ${blockNumber}`)
+
+    let transactions = await getTransactionsToBeSentForChain(chain.name, blockNumber)
+    // For each transaction to be submitted, submit
+    for (let transaction of transactions) {
+      let evidence = {
+        amount: transaction.amount,
+        status: TransactionStatus.CONFIRMED,
+        blockHash: transaction.blockHash,
+        blockNumber: transaction.blockNumber,
+        forwardingAddress: transaction.forwardingAddress,
+        forwardingChannel: transaction.forwardingChannel,
+        recipientAddress: transaction.recipientAddress,
+        txHash: transaction.transactionHash,
+        chainId: vStoragePolicy.chainPolicies[transaction.chain].chainId,
+        blockTimestamp: transaction.blockTimestamp
+      }
+      await submitToAgoric(evidence)
+    }
   });
 
   // Reconnect function for WebSocket
   function reconnect() {
     setTimeout(() => {
       listen(chain)
-      console.log("Attempting to reconnect to WebSocket...");
+      logger.debug("Attempting to reconnect to WebSocket...");
     }, 5000); // Retry after 5 seconds
   }
 }
@@ -69,7 +90,14 @@ export function listen(chain: ChainConfig) {
  * 
  */
 export async function startMultiChainListener() {
-  for (let chain of chainConfig) {
-    listen(chain)
+  for (let chain in vStoragePolicy.chainPolicies) {
+    let chainDetails = getChainFromConfig(chain)
+    if (chainDetails) {
+      chainDetails.contractAddress = ENV == "prod" ? vStoragePolicy.chainPolicies[chain].nobleContractAddress : chainDetails.contractAddress
+      listen(chainDetails)
+    }
+    else {
+      logger.error(`DID NOT FIND CHAIN CONFIG FOR ${chain}`)
+    }
   }
 }

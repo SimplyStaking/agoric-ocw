@@ -1,0 +1,12 @@
+[profile.default]
+src = "foundry/scripts"
+out = "foundry/out"
+libs = ["foundry/lib"]
+
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+
+remappings = [
+  '@openzeppelin/=foundry/lib/openzeppelin-contracts/',
+  '@uniswap/v2-periphery/=foundry/lib/v2-periphery/',
+  'forge-std/=foundry/lib/forge-std/src/',
+]

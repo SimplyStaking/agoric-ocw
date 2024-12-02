@@ -4,13 +4,23 @@ import { logger } from './utils/logger';
 import { chainConfig } from './config/config';
 
 /**
- * Gauge metric to track RPC (Remote Procedure Call) status for a network.
+ * Gauge metric to track RPC status for a network.
  * Value is 1 if RPC is alive, 0 if dead.
  */
 const rpcAliveGauge = new Gauge({
     name: 'rpc_alive',
     help: 'Shows if RPC is alive (1) or dead (0) for a specific network',
     labelNames: ['network'],
+});
+
+/**
+ * Gauge metric to track which Agoric RPC is active
+ * Value is 1 if RPC is alive, 0 if dead.
+ */
+const agoricActiveRPC = new Gauge({
+    name: 'agoric_active_rpc',
+    help: 'Shows which Agoric RPC is active',
+    labelNames: ['endpoint'],
 });
 
 /**
@@ -47,6 +57,15 @@ const totalAmount = new Gauge({
     name: 'total_amount',
     help: 'Shows the total amount destined to Agoric on a specific network',
     labelNames: ['network'],
+});
+
+/**
+ * Gauge metric to track the last offerId from a watcher address
+ */
+const lastOfferSubmitted = new Gauge({
+    name: 'last_watcher_offer',
+    help: 'Shows the id(timestamp) of the last submission made by a watcher',
+    labelNames: ['watcher'],
 });
 
 /**
@@ -148,9 +167,9 @@ export const intialiseGauges = async () => {
     else{
         for(let chain of chainConfig){
             let network = chain.name
-            eventsCount.set({ network }, gauges["eventsCount"] ? gauges["eventsCount"][network] : 0);
-            totalAmount.set({ network }, gauges["totalAmount"] ? gauges["totalAmount"][network] : 0);
-            revertedTxsCount.set({ network }, gauges["revertedTxsCount"] ? gauges["revertedTxsCount"][network] : 0);
+            eventsCount.set({ network }, gauges["eventsCount"] ? gauges["eventsCount"][network] ? gauges["eventsCount"][network] : 0 : 0);
+            totalAmount.set({ network }, gauges["totalAmount"] ? gauges["totalAmount"][network] ? gauges["totalAmount"][network] : 0 : 0);
+            revertedTxsCount.set({ network }, gauges["revertedTxsCount"] ? gauges["revertedTxsCount"][network] ? gauges["revertedTxsCount"][network] : 0 : 0);
         }
     }
 }
@@ -170,6 +189,24 @@ export const saveRPCStates = async () => {
         await setHeightForChain(network, height)
     }
 }
+
+/**
+ * Sets the agoric metric for a specific network.
+ * @param endpoint - The endpoint.
+ * @param isActive - Boolean value indicating if the RPC is active (true) or dead (false).
+ */
+export const setAgoricActiveRpc = (endpoint: string, isActive: boolean): void => {
+    agoricActiveRPC.set({ endpoint }, isActive ? 1 : 0);
+};
+
+/**
+ * Sets the last offerId submitted by a watcher
+ * @param watcher the watcher address
+ * @param offerId the last offerId
+ */
+export const setWatcherLastOfferId = (watcher: string, offerId: number): void => {
+    lastOfferSubmitted.set({ watcher }, offerId);
+};
 
 // Exports the 'register' object for exposing metrics in index.js or other modules
 export { register };

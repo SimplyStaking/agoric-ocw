@@ -1,11 +1,24 @@
 require('dotenv').config();
 
+import { vStoragePolicy } from "../../src/lib/agoric";
 import { processCCTPBurnEventLog } from "../../src/processor";
 import { CCTPTxEvidence, TransactionStatus } from "../../src/types";
-import { updateTransactionStatus } from "../../src/lib/db";
 import { DEPOSIT_FOR_BURN_EVENTS } from "../fixtures/deposit-for-burn-events";
 import { SCENARIOS, makeFakeNobleLCD } from "../mocks/fake-noble-lcd";
 
+function safeJSONStringify(obj:any) {
+  return JSON.stringify(obj, (key, value) =>
+    typeof value === 'bigint' ? Number(value) : value
+  );
+}
+
+jest.mock('./../../src/lib/agoric', () => ({
+  vStoragePolicy: { chainPolicies: {
+    "Ethereum": {
+      chainId: 1
+    }
+  }, nobleAgoricChannelId: 'channel-2a', nobleDomainId: 4 },
+}));
 jest.mock('./../../src/lib/db', () => ({
   addTransaction: jest.fn(),
   getTransactionByHash: jest.fn(),
@@ -18,6 +31,14 @@ jest.mock('./../../src/metrics', () => ({
   incrementTotalAmount: jest.fn(),
   incrementRevertedCount: jest.fn(),
 }));
+
+jest.mock('@agoric/client-utils', () => {
+  return {};
+});
+
+jest.mock('@agoric/casting', () => {
+  return {};
+});
 
 jest.mock('mongodb', () => ({
   MongoClient: jest.fn(() => ({
@@ -33,8 +54,6 @@ jest.mock('mongodb', () => ({
     }),
   })),
 }));
-
-
 
 describe('processor Tests', () => {
 
@@ -57,26 +76,6 @@ describe('processor Tests', () => {
     expect(evidence).toBe(null);
   });
 
-  test('processes event for agoric plus address with reporting', async () => {
-    let evidence = await processCCTPBurnEventLog(DEPOSIT_FOR_BURN_EVENTS['agoric-forwarding-acct'], "Ethereum", fakeNobleLCD);
-
-    const expectedEvidence: CCTPTxEvidence = {
-      amount: 150000000n,
-      status: TransactionStatus.CONFIRMED,
-      blockHash:
-        '0x90d7343e04f8160892e94f02d6a9b9f255663ed0ac34caca98544c8143fee665',
-      blockNumber: 21037663n,
-      forwardingAddress: SCENARIOS.AGORIC_PLUS_ADDR,
-      forwardingChannel: 'channel-21',
-      recipientAddress:
-        'agoric16kv2g7snfc4q24vg3pjdlnnqgngtjpwtetd2h689nz09lcklvh5s8u37ek+osmo183dejcnmkka5dzcu9xw6mywq0p2m5peks28men',
-      txHash:
-        '0xc81bc6105b60a234c7c50ac17816ebcd5561d366df8bf3be59ff387552761702',
-    };
-    
-    expect(JSON.stringify(evidence)).toEqual(JSON.stringify(expectedEvidence));
-  });
-
   test('handles non-noble domain', async () => {
     const nonNobleEvent = {
       ...DEPOSIT_FOR_BURN_EVENTS['agoric-forwarding-acct'],
@@ -87,5 +86,26 @@ describe('processor Tests', () => {
 
     // Should not report for non-Noble domains
     expect(evidence).toBe(null);
+  });
+
+  test('processes event for agoric plus address with reporting', async () => {
+    let evidence = await processCCTPBurnEventLog(DEPOSIT_FOR_BURN_EVENTS['agoric-forwarding-acct'], "Ethereum", fakeNobleLCD);
+    const expectedEvidence = {
+      amount: 150000000n,
+      status: TransactionStatus.CONFIRMED,
+      blockHash:
+        '0x90d7343e04f8160892e94f02d6a9b9f255663ed0ac34caca98544c8143fee665',
+      blockNumber: 21037663n,
+      chainId: 1,
+      blockTimestamp: 10000000n,
+      forwardingAddress: SCENARIOS.AGORIC_PLUS_ADDR,
+      forwardingChannel: 'channel-21',
+      recipientAddress:
+        'agoric16kv2g7snfc4q24vg3pjdlnnqgngtjpwtetd2h689nz09lcklvh5s8u37ek+osmo183dejcnmkka5dzcu9xw6mywq0p2m5peks28men',
+      txHash:
+        '0xc81bc6105b60a234c7c50ac17816ebcd5561d366df8bf3be59ff387552761702',
+    };
+    
+    expect(JSON.parse(safeJSONStringify(evidence))).toEqual(JSON.parse(safeJSONStringify(expectedEvidence)));
   });
 });

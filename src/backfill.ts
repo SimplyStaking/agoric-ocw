@@ -8,6 +8,7 @@ import { Hex } from "viem";
 import { processCCTPBurnEventLog } from "./processor";
 import { submitToAgoric } from "./submitter";
 import { setRpcAlive } from "./metrics";
+import { vStoragePolicy } from "./lib/agoric";
 
 // Function to get event logs from a specific block onwards
 export async function backfillChain(
@@ -82,12 +83,17 @@ export async function backfillChain(
 
 export async function backfill(){
     // Get latest heights
-    let heights = await getAllHeights()
+    let heights = await getAllHeights() || null
     for(let chain in heights){
-        let chainConfig = getChainFromConfig(chain)
-        if(chainConfig){
+        // If chain is found in agoric policy
+        if (vStoragePolicy.chainPolicies[chain]) {
+          logger.info(`Backfilling for ${chain}`)
+          let chainConfig = getChainFromConfig(chain)
+          if(chainConfig){
             await backfillChain(chainConfig, heights[chain])
+          }
         }
+       
     }
 
 }

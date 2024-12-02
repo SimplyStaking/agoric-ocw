@@ -1,15 +1,14 @@
-import { NOBLE_DOMAIN } from "./config/config";
-import { addTransaction, getTransactionByHash, updateTransactionStatus } from "./lib/db";
+import { addRemovedTX, addTransaction, getTransactionByHash, updateTransactionStatus } from "./lib/db";
 import { NobleLCD, getForwardingAccount, getNobleLCDClient } from "./lib/noble-lcd";
 import { CCTPTxEvidence, DepositForBurnEvent, NobleAddress, TransactionStatus } from "./types";
 import { decodeToNoble } from "./utils/address";
 import {logger} from "./utils/logger";
 import { incrementEventsCount, incrementRevertedCount, incrementTotalAmount } from "./metrics";
+import { vStoragePolicy } from "./lib/agoric";
 
 export async function processCCTPBurnEventLog(event: DepositForBurnEvent, originChain: string, nobleLCD = getNobleLCDClient()): (Promise<CCTPTxEvidence | null>) {
-    
     // If not to noble
-    if(event.destinationDomain != (NOBLE_DOMAIN || 4)){
+    if(event.destinationDomain != (vStoragePolicy.nobleDomainId || 4)){
         logger.debug(`NOT FOR NOBLE from ${originChain}: ${event.transactionHash}`)
         return null;
     }
@@ -45,6 +44,9 @@ export async function processCCTPBurnEventLog(event: DepositForBurnEvent, origin
         // Update record in DB
         await updateTransactionStatus(event.transactionHash, originChain, TransactionStatus.REORGED)
 
+        // Add tx to removed TX in DB
+        await addRemovedTX(event.transactionHash, originChain)
+
         // Increment metric
         incrementRevertedCount(originChain)
 
@@ -53,6 +55,8 @@ export async function processCCTPBurnEventLog(event: DepositForBurnEvent, origin
             status: TransactionStatus.REORGED,
             blockHash: event.blockHash,
             blockNumber: event.blockNumber,
+            blockTimestamp: event.blockTimestamp,
+            chainId: vStoragePolicy.chainPolicies[originChain].chainId,
             forwardingAddress: nobleAddress as NobleAddress,
             forwardingChannel: agoricForwardingAcct.channel,
             recipientAddress: agoricForwardingAcct.recipient,
@@ -76,7 +80,11 @@ export async function processCCTPBurnEventLog(event: DepositForBurnEvent, origin
         blockNumber: Number(event.blockNumber),
         transactionHash: event.transactionHash,
         amount: Number(event.amount),
-        recipientAddress: agoricForwardingAcct.recipient
+        recipientAddress: agoricForwardingAcct.recipient,
+        forwardingAddress: nobleAddress,
+        forwardingChannel: vStoragePolicy.nobleAgoricChannelId,
+        blockHash: event.blockHash,
+        blockTimestamp: Number(event.blockTimestamp)
     })
 
     return {
@@ -84,9 +92,11 @@ export async function processCCTPBurnEventLog(event: DepositForBurnEvent, origin
         status: TransactionStatus.CONFIRMED,
         blockHash: event.blockHash,
         blockNumber: event.blockNumber,
+        blockTimestamp: event.blockTimestamp,
         forwardingAddress: nobleAddress as NobleAddress,
         forwardingChannel: agoricForwardingAcct.channel,
         recipientAddress: agoricForwardingAcct.recipient,
         txHash: event.transactionHash!,
+        chainId: vStoragePolicy.chainPolicies[originChain].chainId
     }
 }

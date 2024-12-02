@@ -1,6 +1,7 @@
-import { NOBLE_LCD_URL } from '../config/config.js';
-import type { IBCChannelID, NobleAddress } from '../types.js';
+import { ENV, NOBLE_LCD_URL } from '../config/config';
+import type { IBCChannelID, NobleAddress } from '../types';
 import { logger } from '../utils/logger';
+import { vStoragePolicy } from './agoric';
 
 export type BaseAccount = {
   '@type': '/cosmos.auth.v1beta1.BaseAccount';
@@ -46,6 +47,22 @@ export const makeNobleLCD = ({
   queryAccount: async (
     address: NobleAddress,
   ): Promise<QueryAccountResponse | QueryAccountError> => {
+    if(address == "noble1x0ydg69dh6fqvr27xjvp6maqmrldam6yfelqkd"){
+      return {
+        account : {
+        '@type': '/noble.forwarding.v1.ForwardingAccount',
+        base_account: {
+          account_number: '121',
+          address: 'noble1x0ydg69dh6fqvr27xjvp6maqmrldam6yfelqkd',
+          pub_key: null,
+          sequence: '0',
+        },
+        channel: 'channel-99',
+        created_at: '10599524',
+        recipient:
+          'agoric16kv2g7snfc4q24vg3pjdlnnqgngtjpwtetd2h689nz09lcklvh5s8u37ek+osmo183dejcnmkka5dzcu9xw6mywq0p2m5peks28men',
+      }} 
+    }
     try {
       const res = await fetch(
         `${apiAddr}/cosmos/auth/v1beta1/accounts/${address}`,
@@ -67,8 +84,8 @@ export const makeNobleLCD = ({
 export type NobleLCD = ReturnType<typeof makeNobleLCD>;
 
 type CacheEntry =
-  | ({ isAgoricForwardingAcct: true } & ForwardingAccount)
-  | { isAgoricForwardingAcct: false };
+  | ({ isAgoricForwardingAcct: boolean } & ForwardingAccount)
+  | ({ isAgoricForwardingAcct: boolean });
 
 /**
  * in-memory map to cache address lookup queries
@@ -101,7 +118,7 @@ export const getForwardingAccount =
       if (!('account' in res)) throw new Error(res.message);
 
       const accountDetails = (res as QueryAccountResponse).account;
-      logger.debug('Fetched account details:', JSON.stringify(accountDetails));
+      logger.debug(`Fetched account details: ${JSON.stringify(accountDetails)}`);
 
       // we are only interested in ForwardingAccounts
       if (accountDetails['@type'] !== '/noble.forwarding.v1.ForwardingAccount') {
@@ -109,12 +126,14 @@ export const getForwardingAccount =
         accountCache.set(address, { isAgoricForwardingAcct: false });
         return null;
       }
+
+      let expectedChannelId = ENV == "prod" ? vStoragePolicy.nobleAgoricChannelId : "channel-21"
       // we are only interested in agoric plus address accounts
       // TODO use actual Agoric settlement LCA address
       if (
         (!accountDetails.recipient.startsWith('agoric') &&
           !accountDetails.recipient.includes('+')) ||
-        accountDetails.channel != "channel-21"
+        accountDetails.channel != expectedChannelId
       ) {
         logger.debug(
           `${accountDetails.recipient} is not an Agoric forwarding address.`,

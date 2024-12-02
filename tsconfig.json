@@ -1,17 +1,18 @@
 {
   "compilerOptions": {
-    "baseUrl": "./",
     "target": "esnext",
     "module": "esnext",
     "moduleResolution": "bundler",
+    "esModuleInterop": true,
     "allowJs": true,
     "checkJs": true,
     "allowSyntheticDefaultImports": true,
-    "strict": false,
-    "downlevelIteration": true,
+    "strict": true,
     "strictNullChecks": true,
     "noImplicitThis": true,
-    "sourceMap": true
+    "skipLibCheck": true,
+    "sourceMap": true,
   },
-  "include": ["scripts", "src", "test"]
+  "include": ["scripts", "src", "test"],
+  "exclude": ["node_modules"],
 }

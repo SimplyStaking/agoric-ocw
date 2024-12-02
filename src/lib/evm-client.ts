@@ -2,11 +2,11 @@
  * @file Create test and prod clients for interfacing with an EVM RPC node
  */
 import { logger } from '../utils/logger';
-import { ChainConfig } from 'src/types';
+import { ChainConfig } from '../types';
 import WebSocket from 'ws';
-import { setRpcAlive } from 'src/metrics';
-import { listen } from 'src/listener';
-import { RPC_RECONNECT_DELAY } from 'src/config/config';
+import { setRpcAlive } from '../metrics';
+import { listen } from '../listener';
+import { RPC_RECONNECT_DELAY } from '../config/config';
 import { WebSocketProvider } from 'ethers';
 
 
@@ -17,24 +17,6 @@ type WebSocketProviderMap = {
 
 // Example usage of the WebSocketProviderMap type
 const providers: WebSocketProviderMap = {};
-
-/**
- * Fetches the latest block number from the connected blockchain.
- *
- * @param client - The client to query
- * @param chain - The chain name
- * @return A promise that resolves to the current block number as a BigInt.
- * @throws An error if there is an issue retrieving the block number.
- */
-export async function fetchCurrentBlockNumber(client, chain): Promise<bigint> {
-  try {
-    const blockNumber = await client.getBlockNumber();
-    return BigInt(blockNumber);
-  } catch (error) {
-    logger.error(`Error fetching block number for ${chain}: ${error}`);
-    throw error;
-  }
-}
 
 /**
  * Creates a websocket to be used for the websocket provider
@@ -59,7 +41,7 @@ function createWebSocket(chain: ChainConfig) {
     }, RPC_RECONNECT_DELAY * 1000);
   });
 
-  ws.on("error", (error) => {
+  ws.on("error", (error: any) => {
     logger.error(`WebSocket error on ${chain.name}: ${error}`);
   });
 

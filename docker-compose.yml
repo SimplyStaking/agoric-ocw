@@ -14,4 +14,7 @@ services:
       - "3011:3011"
     environment:
       - NODE_ENV=production
+    volumes:
+      - "./binaries/agd:/usr/local/bin/agd"
+      - "~/.agoric:/root/.agoric"
     command: ["node_modules/.bin/tsx", "./src/index.ts"]
