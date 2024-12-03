@@ -4,32 +4,38 @@ This solution listens to CCTP transactions from other chains, and if the mint re
 
 ### What does this solution do?
 
-1. Creates a websocket connection to multiple chains and has automatic reconnections if the connection gets dropped
+1. Reads chain policies from Agoric 
 
-2. Listens for ```event DepositForBurn(uint64 indexed nonce, address indexed burnToken, uint256 amount, address indexed depositor, bytes32 mintRecipient, uint32 destinationDomain, bytes32 destinationTokenMessenger, bytes32 destinationCaller)"``` on multiple chains
+2. Creates a websocket connection to multiple chains and has automatic reconnections if the connection gets dropped
 
-3. Submits an evidence to Agoric if:
+3. Listens for ```event DepositForBurn(uint64 indexed nonce, address indexed burnToken, uint256 amount, address indexed depositor, bytes32 mintRecipient, uint32 destinationDomain, bytes32 destinationTokenMessenger, bytes32 destinationCaller)"``` on multiple chains
+
+4. Records a TX in the DB if:
     - The Destination Domain is 4
     - After querying noble to get the forwarding account, the mint receiver is an Agoric address and the channel-id is 21
     - This evidence not already submitted 
-    - If the event contains ```removed:false```, which means that tx was reverted from a block reorganisation, a separate evidence is posted on Agoric
 
-4. Outputs metrics regarding
+5. On every new block from the EVM chain:
+    - Gets the transactions which were included in a block with height less than CURRENT_HEIGHT - CONFIRMATIONS_NEEDED
+    - If there is no successful submission recorded in the DB, this is posted to Agoric
+
+6. Outputs metrics regarding
     - RPC health 
     - RPC block number
     - Total Events found for Agoric
     - Total ReOrged TXs found which were destined to Agoric
     - Total amounts destined to Agoric
+    - The last offer ID for the watcher account
 
-5. On startup, gets the events between the last height recorded by this watcher and the current height and submits evidences for any missed events
+7. On startup, gets the events between the last height recorded by this watcher and the current height and submits evidences for any missed events
 
-### Resubmission Mechanism
+8. Be able to resubmit evidences to Agoric if they fail until they succeed with the following resubmission mechanism:
 
-1. Submit tx with SYNC broadcast mode and set a timeout height of TX_TIMEOUT_BLOCKS + current height
-2. Have a websocket connection to the agoric node constantly listening to new blocks
-3. On every new block
-    1. get the new offers from the last observed, Set all these offers to CONFIRMED in DB
-    2. Loop through in flight txs from db whose timeout height is equal or less than the new block's height and retry it
+    - Submit tx with SYNC broadcast mode and set a timeout height of TX_TIMEOUT_BLOCKS + current height
+    - Have a websocket connection to the agoric node constantly listening to new blocks
+    - On every new block
+        - get the new offers from the last observed, Set all these offers to CONFIRMED in DB
+        - Loop through in flight txs from db whose timeout height is equal or less than the new block's height and retry it
 
 
 ### Testing Environment
