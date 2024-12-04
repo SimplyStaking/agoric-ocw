@@ -2,8 +2,8 @@ import { ethers } from 'ethers';
 import { processCCTPBurnEventLog } from './processor';
 import { logger } from './utils/logger';
 import { submitToAgoric } from './submitter';
-import { setAgoricActiveRpc, setRpcAlive, setRpcBlockHeight } from './metrics';
-import { ACTIVE_AGORIC_RPC, ENV, EVENT_ABI, chainConfig, getChainFromConfig, nextActiveAgoricRPC } from "./config/config";
+import { setRpcAlive, setRpcBlockHeight } from './metrics';
+import { ENV, EVENT_ABI, getChainFromConfig } from "./config/config";
 import { ChainConfig, DepositForBurnEvent, Hex, TransactionStatus } from './types';
 import { ContractEventPayload } from 'ethers';
 import { getWsProvider } from './lib/evm-client';
@@ -25,7 +25,7 @@ export function listen(chain: ChainConfig) {
 
   // Listen for `DepositForBurn` events and process them
   contract.on("DepositForBurn",
-    async (nonce, burnToken, depositor, amount, mintRecipient, destinationDomain, destinationTokenMessenger, destinationCaller, event: ContractEventPayload) => {
+    async (amount, mintRecipient, destinationDomain, destinationTokenMessenger, destinationCaller, event: ContractEventPayload) => {
       try {
         if (Number(destinationDomain) === 4) { // Filter by specific destination domain
           setRpcAlive(name, true);
@@ -76,18 +76,10 @@ export function listen(chain: ChainConfig) {
     }
   });
 
-  // Reconnect function for WebSocket
-  function reconnect() {
-    setTimeout(() => {
-      listen(chain)
-      logger.debug("Attempting to reconnect to WebSocket...");
-    }, 5000); // Retry after 5 seconds
-  }
 }
 
 /**
  * Initializes listeners for multiple blockchain networks.
- * 
  */
 export async function startMultiChainListener() {
   for (let chain in vStoragePolicy.chainPolicies) {

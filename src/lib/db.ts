@@ -24,6 +24,10 @@ const connectDB = async (): Promise<void> => {
     }
 };
 
+/**
+ * INTERFACES
+ */
+
 interface ITransactionDetails {
     chain: string;
     blockNumber: number;
@@ -37,8 +41,39 @@ interface ITransactionDetails {
     blockTimestamp: number;
     created: number;
 }
-// Interface and Schema for Transaction Model
-interface ITransaction extends Document, ITransactionDetails {}
+
+interface ITransaction extends Document, ITransactionDetails { }
+
+interface ISubmission extends Document {
+    offerId: string;
+    transactionHash: string;
+    reorged: boolean;
+    submissionStatus: SubmissionStatus;
+    timeoutHeight: number;
+}
+
+interface IRemovedTX extends Document {
+    transactionHash: string;
+    chain: string;
+    created: Number;
+}
+
+export interface GaugesState {
+    eventsCount: Map<string, number>;
+    revertedTxsCount: Map<string, number>;
+    totalAmount: Map<string, number>;
+}
+
+export interface IState extends Document {
+    lastOfferId: string;
+    lastHeights: Map<string, number>; // Map to store heights for any network name
+    gauges: GaugesState;
+    updatedAt: Date;
+}
+
+/**
+ * SCEMAS
+ */
 
 const transactionSchema = new Schema<ITransaction>({
     chain: { type: String, required: true },
@@ -54,17 +89,6 @@ const transactionSchema = new Schema<ITransaction>({
     created: { type: Number, required: true },
 });
 
-export const Transaction = mongoose.model<ITransaction>('Transaction', transactionSchema);
-
-// Interface and Schema for Submission Model
-interface ISubmission extends Document {
-    offerId: string;
-    transactionHash: string;
-    reorged: boolean;
-    submissionStatus: SubmissionStatus;
-    timeoutHeight: number;
-}
-
 const submissionSchema = new Schema<ISubmission>({
     offerId: { type: String, required: true, unique: true },
     transactionHash: { type: String, required: true },
@@ -73,37 +97,12 @@ const submissionSchema = new Schema<ISubmission>({
     timeoutHeight: { type: Number, required: true },
 });
 
-export const Submission = mongoose.model<ISubmission>('Submission', submissionSchema);
-
-// Interface and Schema for RemovedTXs Model
-interface IRemovedTX extends Document {
-    transactionHash: string;
-    chain: string;
-    created: Number;
-}
-
 const removedTXSchema = new Schema<IRemovedTX>({
     transactionHash: { type: String, required: true },
     chain: { type: String, required: true },
     created: { type: Number, required: true },
 });
 
-export const RemovedTX = mongoose.model<IRemovedTX>('RemovedTX', removedTXSchema);
-
-export interface GaugesState {
-    eventsCount: Map<string, number>;
-    revertedTxsCount: Map<string, number>;
-    totalAmount: Map<string, number>;
-}
-// Interface and Schema for State Model (Tracking gauges and heights)
-export interface IState extends Document {
-    lastOfferId: string;
-    lastHeights: Map<string, number>; // Map to store heights for any network name
-    gauges: GaugesState;
-    updatedAt: Date;
-}
-
-// State Schema that holds node state for multiple networks
 const stateSchema: Schema = new Schema({
     _id: { type: String, required: true },
     lastHeights: {
@@ -111,7 +110,7 @@ const stateSchema: Schema = new Schema({
         of: Number,
         required: true,
     },
-    lastOfferId: {type: String},
+    lastOfferId: { type: String },
     gauges: {
         eventsCount: {
             type: Map,
@@ -132,6 +131,9 @@ const stateSchema: Schema = new Schema({
     updatedAt: { type: Date, default: Date.now },
 });
 
+export const Transaction = mongoose.model<ITransaction>('Transaction', transactionSchema);
+export const Submission = mongoose.model<ISubmission>('Submission', submissionSchema);
+export const RemovedTX = mongoose.model<IRemovedTX>('RemovedTX', removedTXSchema);
 const State = mongoose.model<IState>('State', stateSchema);
 
 /**
@@ -238,13 +240,13 @@ export const updateSubmissionStatus = async (
     transactionHash: string,
     reorged: boolean,
     submissionStatus: SubmissionStatus,
-    timeoutHeight? : number
+    timeoutHeight?: number
 ): Promise<ISubmission | null> => {
     let newValue: any = {
         submissionStatus
     }
 
-    if(timeoutHeight){
+    if (timeoutHeight) {
         newValue.timeoutHeight = timeoutHeight
     }
     return await Submission.findOneAndUpdate(
@@ -343,7 +345,7 @@ export const getLastOfferId = async () => {
  * Sets the last read offer ID.
  * @param {string} offerId - The latest offer ID
  */
-export const setLastOfferId = async (offerId: string)=> {
+export const setLastOfferId = async (offerId: string) => {
     await State.updateOne(
         { _id: 'node-state' },
         {
@@ -415,27 +417,27 @@ export const getTransactionsToBeSentForChain = async (chain: string, currentHeig
 export const getExpiredTransactionsWithInflightStatus = async (maxTimeoutHeight: number) => {
     // Aggregation pipeline
     const transactions = await Transaction.aggregate([
-      {
-        $lookup: {
-          from: 'submissions', // Join with the submissions collection
-          localField: 'transactionHash', // Match transaction hashes
-          foreignField: 'transactionHash',
-          as: 'submissionDetails',
+        {
+            $lookup: {
+                from: 'submissions', // Join with the submissions collection
+                localField: 'transactionHash', // Match transaction hashes
+                foreignField: 'transactionHash',
+                as: 'submissionDetails',
+            },
         },
-      },
-      {
-        $unwind: '$submissionDetails', // Deconstruct the submissionDetails array
-      },
-      {
-        $match: {
-          'submissionDetails.submissionStatus': 'INFLIGHT', // Match status "INFLIGHT"
-          'submissionDetails.timeoutHeight': { $lt: maxTimeoutHeight }, // timeoutHeight less than the given argument
+        {
+            $unwind: '$submissionDetails', // Deconstruct the submissionDetails array
         },
-      },
+        {
+            $match: {
+                'submissionDetails.submissionStatus': 'INFLIGHT', // Match status "INFLIGHT"
+                'submissionDetails.timeoutHeight': { $lt: maxTimeoutHeight }, // timeoutHeight less than the given argument
+            },
+        },
     ]);
-  
+
     return transactions;
-  };
+};
 
 // Initialize DB connection on app start
 connectDB();

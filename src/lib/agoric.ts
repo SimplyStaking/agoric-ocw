@@ -3,9 +3,8 @@ import { logger } from "../utils/logger";
 import WebSocket from 'ws';
 import { execSync } from 'child_process';
 import { makeVstorageKit, boardSlottingMarshaller } from '@agoric/client-utils';
-import { AgoricSubmissionResponse, CctpTxSubmission, NetworkConfig, SubmissionStatus, TransactionStatus, VStorage, WatcherStatus } from "../types";
+import { AgoricSubmissionResponse, CctpTxSubmission, NetworkConfig, SubmissionStatus, TransactionStatus, VStorage } from "../types";
 import { BridgeAction } from '@agoric/smart-wallet/src/smartWallet.js'
-
 import {
     iterateReverse,
     makeFollower,
@@ -16,16 +15,20 @@ import { setRpcBlockHeight, setWatcherLastOfferId } from "../metrics";
 import { getExpiredTransactionsWithInflightStatus, getLastOfferId, setLastOfferId, updateSubmissionStatus } from "./db";
 import { submitToAgoric } from "../submitter";
 
+// Holds the vstorage policy obtained from Agoric
 export let vStoragePolicy: VStorage = {
     chainPolicies: {},
     nobleAgoricChannelId: '',
     nobleDomainId: 0
 }
 
+// Holds the watcher invitation ID
 export let watcherInvitation: string = ""
 
+// Holds the Agoric WS Provider
 export let agoricWsProvider: WebSocket;
 
+// Holds the last visited offer ID
 export let lastOfferId: string | null;
 
 const emptyCurrentRecord = {
@@ -51,13 +54,13 @@ export function createAgoricWebSocket() {
     // Listen for new blocks
     agoricWsProvider.on('message', async (message: string) => {
         let msgJSON = JSON.parse(message)
-        if(msgJSON.result.data){
+        if (msgJSON.result.data) {
             let newHeight = Number(msgJSON.result.data.value.block.header.height)
             setRpcBlockHeight("agoric", newHeight)
             let newOffers = await getNewOffers()
 
             // Loop through each offer and set them to submitted
-            for (let offer of newOffers){
+            for (let offer of newOffers) {
                 await updateSubmissionStatus(offer.txHash, false, SubmissionStatus.SUBMITTED)
             }
 
@@ -65,7 +68,7 @@ export function createAgoricWebSocket() {
             let expiredTransactions = await getExpiredTransactionsWithInflightStatus(newHeight)
 
             // Loop though these and resubmit
-            for (let transaction of expiredTransactions){
+            for (let transaction of expiredTransactions) {
                 let evidence = {
                     amount: transaction.amount,
                     status: TransactionStatus.CONFIRMED,
@@ -77,14 +80,14 @@ export function createAgoricWebSocket() {
                     txHash: transaction.transactionHash,
                     chainId: transaction.chainId,
                     blockTimestamp: transaction.blockTimestamp
-                  }
-                  await submitToAgoric(evidence)
+                }
+                await submitToAgoric(evidence)
             }
 
             logger.debug(`New block from agoric: ${newHeight}`);
 
         }
-      });
+    });
 
     agoricWsProvider.on("close", () => {
         logger.error(`Disconnected on Agoric. Reconnecting...`);
@@ -99,15 +102,6 @@ export function createAgoricWebSocket() {
     agoricWsProvider.on("error", (error: any) => {
         logger.error(`WebSocket error on Agoric: ${error}`);
     });
-}
-
-/**
- * Function to create a websocker provider for Agoric
- * @returns The websocket provider for Agoric
- */
-const makeWebSocketProvider = () => {
-    // Setup WebSocket provider
-    let ws = createAgoricWebSocket()
 }
 
 /**
@@ -188,7 +182,6 @@ export const getCurrent = async (addr: string, { readPublished }: any) => {
  */
 export const getInvitation = async () => {
 
-    // let {fromBoard, vstorage } = await makeRpcUtils();
     const { readPublished, agoricNames } = await makeVstorageKit(
         {
             fetch,
@@ -260,7 +253,7 @@ export const setParams = async () => {
 /**
  * Initialises the agoric state for the last offer id
  */
-export const initAgoricState = async () =>{
+export const initAgoricState = async () => {
     lastOfferId = await getLastOfferId()
 }
 
@@ -362,14 +355,14 @@ export const getNewOffers = async () => {
             let id = offer.value.status.id;
 
             // If the last visited ofer id is more recent than the current id
-            if(lastOfferId && !isNaN(Number(lastOfferId)) && Number(lastOfferId) >= id){
+            if (lastOfferId && !isNaN(Number(lastOfferId)) && Number(lastOfferId) >= id) {
                 break;
             }
 
             // If the offer is not errored and it is a SubmitEvidence
             if (!offer.value.status.hasOwnProperty("error") && offer.value.status.invitationSpec.invitationMakerName == "SubmitEvidence") {
                 // if the first id, set it
-                if(!firstId){
+                if (!firstId) {
                     firstId = id
                 }
                 if (!offers[id]) {
@@ -382,8 +375,8 @@ export const getNewOffers = async () => {
     }
     // update latest id
     await setLastOfferId(firstId)
-    let isNan = isNaN(Number(firstId)) 
-    if(!isNan && firstId){
+    let isNan = isNaN(Number(firstId))
+    if (!isNan && firstId) {
         setWatcherLastOfferId(WATCHER_WALLET_ADDRESS, firstId)
         lastOfferId = firstId;
     }
@@ -497,5 +490,5 @@ export const getLatestBlockHeight = async () => {
             height: 0,
             syncing: true
         };
-    } 
+    }
 }
