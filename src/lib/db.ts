@@ -35,6 +35,7 @@ interface ITransactionDetails {
     forwardingChannel: string;
     blockHash: string;
     blockTimestamp: number;
+    created: number;
 }
 // Interface and Schema for Transaction Model
 interface ITransaction extends Document, ITransactionDetails {}
@@ -50,6 +51,7 @@ const transactionSchema = new Schema<ITransaction>({
     forwardingChannel: { type: String, required: true },
     blockHash: { type: String, required: true },
     blockTimestamp: { type: Number, required: true },
+    created: { type: Number, required: true },
 });
 
 export const Transaction = mongoose.model<ITransaction>('Transaction', transactionSchema);
@@ -77,11 +79,13 @@ export const Submission = mongoose.model<ISubmission>('Submission', submissionSc
 interface IRemovedTX extends Document {
     transactionHash: string;
     chain: string;
+    created: Number;
 }
 
 const removedTXSchema = new Schema<IRemovedTX>({
     transactionHash: { type: String, required: true },
     chain: { type: String, required: true },
+    created: { type: Number, required: true },
 });
 
 export const RemovedTX = mongoose.model<IRemovedTX>('RemovedTX', removedTXSchema);
@@ -172,8 +176,20 @@ export const addRemovedTX = async (
     const removedTX = new RemovedTX({
         transactionHash,
         chain,
+        created: Date.now()
     });
     return await removedTX.save();
+};
+
+/**
+ * Gets removed transactions created since a particular timestamp
+ * @param {Number} timestamp - The timestamps since when to get.
+ * @returns {Promise<IRemovedTX[] | null>} - The transactions created since the passed timestamp
+ */
+export const getRemovedTransactionsSince = async (
+    timestamp: Number,
+): Promise<IRemovedTX[] | null> => {
+    return await RemovedTX.find({ created: { $gte: timestamp } }).select('-_id');;
 };
 
 /**
@@ -263,6 +279,17 @@ export const getTransactionByHash = async (
     chain: string
 ): Promise<ITransaction | null> => {
     return await Transaction.findOne({ transactionHash, chain });
+};
+
+/**
+ * Gets transactions created since a particular timestamp
+ * @param {Number} timestamp - The timestamps since when to get.
+ * @returns {Promise<ITransaction[] | null>} - The transactions created since the passed timestamp
+ */
+export const getTransactionsSince = async (
+    timestamp: Number,
+): Promise<ITransaction[] | null> => {
+    return await Transaction.find({ created: { $gte: timestamp } }).select('-_id');;
 };
 
 /**

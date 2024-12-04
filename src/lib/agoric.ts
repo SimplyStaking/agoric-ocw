@@ -81,7 +81,7 @@ export function createAgoricWebSocket() {
                   await submitToAgoric(evidence)
             }
 
-            logger.debug('New block from agoric:', newHeight);
+            logger.debug(`New block from agoric: ${newHeight}`);
 
         }
       });

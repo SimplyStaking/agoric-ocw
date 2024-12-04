@@ -7,10 +7,10 @@ import { startMultiChainListener } from "./listener";
 import { logger } from "./utils/logger";
 import { backfill } from "./backfill";
 import { monitorAgoric } from './submitter';
-
 import { createAgoricWebSocket, getInvitation, getLatestOffers, getOfferById, initAgoricState, initChainPolicyScraper, lastOfferId, watcherInvitation, } from './lib/agoric';
 import { WATCHER_WALLET_ADDRESS } from './config/config';
 import { setLastOfferId } from './lib/db';
+import apiRouter from './api';
 
 const app = express();
 const PORT = 3011;
@@ -24,6 +24,9 @@ app.get('/metrics', async (req, res) => {
     res.status(500).send(error.toString());
   }
 });
+
+// Mount the routes at the `/api` path
+app.use('/api', apiRouter);
 
 const main = async () => {
   app.listen(PORT, () => {

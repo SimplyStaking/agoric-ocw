@@ -84,7 +84,8 @@ export async function processCCTPBurnEventLog(event: DepositForBurnEvent, origin
         forwardingAddress: nobleAddress,
         forwardingChannel: vStoragePolicy.nobleAgoricChannelId,
         blockHash: event.blockHash,
-        blockTimestamp: Number(event.blockTimestamp)
+        blockTimestamp: Number(event.blockTimestamp),
+        created: Date.now()
     })
 
     return {

@@ -47,7 +47,7 @@ export const makeNobleLCD = ({
   queryAccount: async (
     address: NobleAddress,
   ): Promise<QueryAccountResponse | QueryAccountError> => {
-    if(address == "noble1x0ydg69dh6fqvr27xjvp6maqmrldam6yfelqkd"){
+    if(address == "noble1x0ydg69dh6fqvr27xjvp6maqmrldam6yfelqkd" && ENV != "prod"){
       return {
         account : {
         '@type': '/noble.forwarding.v1.ForwardingAccount',
@@ -57,7 +57,7 @@ export const makeNobleLCD = ({
           pub_key: null,
           sequence: '0',
         },
-        channel: 'channel-99',
+        channel: 'channel-21',
         created_at: '10599524',
         recipient:
           'agoric16kv2g7snfc4q24vg3pjdlnnqgngtjpwtetd2h689nz09lcklvh5s8u37ek+osmo183dejcnmkka5dzcu9xw6mywq0p2m5peks28men',
@@ -133,7 +133,7 @@ export const getForwardingAccount =
       if (
         (!accountDetails.recipient.startsWith('agoric') &&
           !accountDetails.recipient.includes('+')) ||
-        accountDetails.channel != expectedChannelId
+          accountDetails.channel != expectedChannelId
       ) {
         logger.debug(
           `${accountDetails.recipient} is not an Agoric forwarding address.`,

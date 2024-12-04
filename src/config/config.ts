@@ -146,3 +146,8 @@ export const TX_TIMEOUT_BLOCKS = Number(process.env.TX_TIMEOUT_BLOCKS || '3')
  * Holds the environment
  */
 export const ENV = process.env.ENV || "prod"
+
+/**
+ * Holds the api secret to query txs
+ */
+export const API_SECRET = process.env.API_SECRET || "XXXXXXX"
