@@ -1,23 +1,25 @@
-require('dotenv').config();
+require('dotenv').config({ path: '.env.test' });
 
-import { vStoragePolicy } from "../../src/lib/agoric";
 import { processCCTPBurnEventLog } from "../../src/processor";
-import { CCTPTxEvidence, TransactionStatus } from "../../src/types";
+import { TransactionStatus } from "../../src/types";
 import { DEPOSIT_FOR_BURN_EVENTS } from "../fixtures/deposit-for-burn-events";
 import { SCENARIOS, makeFakeNobleLCD } from "../mocks/fake-noble-lcd";
 
-function safeJSONStringify(obj:any) {
+function safeJSONStringify(obj: any) {
   return JSON.stringify(obj, (key, value) =>
     typeof value === 'bigint' ? Number(value) : value
   );
 }
 
 jest.mock('./../../src/lib/agoric', () => ({
-  vStoragePolicy: { chainPolicies: {
-    "Ethereum": {
-      chainId: 1
-    }
-  }, nobleAgoricChannelId: 'channel-2a', nobleDomainId: 4 },
+  vStoragePolicy: {
+    chainPolicies: {
+      "Ethereum": {
+        chainId: 1,
+        nobleContractAddress: "0x19330d10D9Cc8751218eaf51E8885D058642E08A"
+      }
+    }, nobleAgoricChannelId: 'channel-2a', nobleDomainId: 4
+  },
 }));
 jest.mock('./../../src/lib/db', () => ({
   addTransaction: jest.fn(),
@@ -88,6 +90,20 @@ describe('processor Tests', () => {
     expect(evidence).toBe(null);
   });
 
+  test('handles non-noble sender', async () => {
+    const nonNobleSender = {
+      ...DEPOSIT_FOR_BURN_EVENTS['agoric-forwarding-acct'],
+      sender: "0x00000"
+    };
+
+    console.log("SENDER", nonNobleSender)
+
+    let evidence = await processCCTPBurnEventLog(nonNobleSender, "Ethereum", fakeNobleLCD);
+
+    // Should not report for non-Noble domains
+    expect(evidence).toBe(null);
+  });
+
   test('processes event for agoric plus address with reporting', async () => {
     let evidence = await processCCTPBurnEventLog(DEPOSIT_FOR_BURN_EVENTS['agoric-forwarding-acct'], "Ethereum", fakeNobleLCD);
     const expectedEvidence = {
@@ -105,7 +121,7 @@ describe('processor Tests', () => {
       txHash:
         '0xc81bc6105b60a234c7c50ac17816ebcd5561d366df8bf3be59ff387552761702',
     };
-    
+
     expect(JSON.parse(safeJSONStringify(evidence))).toEqual(JSON.parse(safeJSONStringify(expectedEvidence)));
   });
 });

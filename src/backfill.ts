@@ -6,7 +6,6 @@ import { logger } from "./utils/logger";
 import { getAllHeights } from "./lib/db";
 import { Hex } from "viem";
 import { processCCTPBurnEventLog } from "./processor";
-import { submitToAgoric } from "./submitter";
 import { setRpcAlive } from "./metrics";
 import { vStoragePolicy } from "./lib/agoric";
 
@@ -44,10 +43,14 @@ export async function backfillChain(
 
         if (parsedLog) {
           const {
+            nonce,
+            burnToken,
             amount,
+            depositor,
             mintRecipient,
             destinationDomain,
             destinationTokenMessenger,
+            destinationCaller
           } = parsedLog.args;
 
           if (Number(destinationDomain) === 4) { // Filter by specific destination domain
@@ -60,6 +63,7 @@ export async function backfillChain(
               blockHash: log.blockHash as Hex,
               blockNumber: BigInt(log.blockNumber),
               removed: log.removed,
+              sender: depositor,
               blockTimestamp: BigInt(Date.now()) // Ignore for now
             };
 

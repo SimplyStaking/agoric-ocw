@@ -25,7 +25,7 @@ export function listen(chain: ChainConfig) {
 
   // Listen for `DepositForBurn` events and process them
   contract.on("DepositForBurn",
-    async (amount, mintRecipient, destinationDomain, destinationTokenMessenger, destinationCaller, event: ContractEventPayload) => {
+    async (nonce, burnToken, amount, depositor, mintRecipient, destinationDomain, destinationTokenMessenger, destinationCaller, event: ContractEventPayload) => {
       try {
         if (Number(destinationDomain) === 4) { // Filter by specific destination domain
           setRpcAlive(name, true);
@@ -37,7 +37,8 @@ export function listen(chain: ChainConfig) {
             blockHash: event.log.blockHash as Hex,
             blockNumber: BigInt(event.log.blockNumber),
             removed: event.log.removed,
-            blockTimestamp: BigInt(Date.now())
+            blockTimestamp: BigInt(Date.now()),
+            sender: depositor
           };
 
           // Process the event and submit if evidence is found
@@ -85,7 +86,7 @@ export async function startMultiChainListener() {
   for (let chain in vStoragePolicy.chainPolicies) {
     let chainDetails = getChainFromConfig(chain)
     if (chainDetails) {
-      chainDetails.contractAddress = ENV == "prod" ? vStoragePolicy.chainPolicies[chain].nobleContractAddress : chainDetails.contractAddress
+      chainDetails.contractAddress = ENV == "prod" ? vStoragePolicy.chainPolicies[chain].cctpTokenMessengerAddress : chainDetails.contractAddress
       listen(chainDetails)
     }
     else {

@@ -5,6 +5,7 @@ import { decodeToNoble } from "./utils/address";
 import { logger } from "./utils/logger";
 import { incrementEventsCount, incrementRevertedCount, incrementTotalAmount } from "./metrics";
 import { vStoragePolicy } from "./lib/agoric";
+import { ENV } from "./config/config";
 
 export async function processCCTPBurnEventLog(event: DepositForBurnEvent, originChain: string, nobleLCD = getNobleLCDClient()): (Promise<CCTPTxEvidence | null>) {
     // If not to noble
@@ -23,6 +24,12 @@ export async function processCCTPBurnEventLog(event: DepositForBurnEvent, origin
     // If not an agoric forwarding account
     if (!agoricForwardingAcct) {
         logger.error(`(TX ${event.transactionHash}) ${nobleAddress} not an Agoric forwarding account `)
+        return null;
+    }
+
+    // If not noble contract address
+    if (ENV != "dev" && event.sender != vStoragePolicy.chainPolicies[originChain].nobleContractAddress) {
+        logger.error(`(TX ${event.transactionHash}) not from Noble contract address (FROM: ${event.sender}) `)
         return null;
     }
 

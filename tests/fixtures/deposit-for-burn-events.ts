@@ -12,6 +12,7 @@ export const DEPOSIT_FOR_BURN_EVENTS = {
     blockHash:
       '0x90d7343e04f8160892e94f02d6a9b9f255663ed0ac34caca98544c8143fee665',
     blockNumber: 21037663n,
+    sender: "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
     blockTimestamp: 10000000n,
     removed: false,
     amount: 150000000n,
@@ -19,7 +20,7 @@ export const DEPOSIT_FOR_BURN_EVENTS = {
       '0x00000000000000000000000033c8d468adbe92060d5e34981d6fa0d8fedeef44',
     destinationDomain: 4,
     destinationTokenMessenger:
-    '0x00000000000000000000000057d4eaf1091577a6b7d121202afbd2808134f117',
+      '0x00000000000000000000000057d4eaf1091577a6b7d121202afbd2808134f117',
   },
   // noble1k5gef0mg2n9wyxy9umamhs0aa9wzxl6tpqvjtg
   'dydx-forwarding': {
@@ -30,12 +31,13 @@ export const DEPOSIT_FOR_BURN_EVENTS = {
     blockNumber: 21037665n,
     blockTimestamp: 10000000n,
     removed: false,
+    sender: "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
     amount: 150000000n,
     mintRecipient:
       '0x000000000000000000000000b51194bf6854cae21885e6fbbbc1fde95c237f4b',
     destinationDomain: 4,
     destinationTokenMessenger:
-    '0x00000000000000000000000057d4eaf1091577a6b7d121202afbd2808134f117',
+      '0x00000000000000000000000057d4eaf1091577a6b7d121202afbd2808134f117',
   },
   // noble1t83v48e3ql0hll7u6vas74ln4em4cctezars6l
   'noble-base-acct': {
@@ -46,12 +48,13 @@ export const DEPOSIT_FOR_BURN_EVENTS = {
     blockNumber: 21037667n,
     blockTimestamp: 10000000n,
     removed: false,
+    sender: "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
     amount: 150000000n,
     mintRecipient:
       '0x00000000000000000000000059e2ca9f3107df7fffdcd33b0f57f3ae775c6179',
     destinationDomain: 4,
     destinationTokenMessenger:
-    '0x00000000000000000000000057d4eaf1091577a6b7d121202afbd2808134f117',
+      '0x00000000000000000000000057d4eaf1091577a6b7d121202afbd2808134f117',
   },
   // noble1epztxndz7tzeqhrwn779dujsxzy30x6lxz6q7u
   'noble-addr-not-found': {
@@ -63,10 +66,11 @@ export const DEPOSIT_FOR_BURN_EVENTS = {
     blockTimestamp: 10000000n,
     removed: false,
     amount: 150000000n,
+    sender: "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
     mintRecipient:
       '0x000000000000000000000000c844b34da2f2c5905c6e9fbc56f2503089179b5f',
     destinationDomain: 4,
     destinationTokenMessenger:
-    '0x00000000000000000000000057d4eaf1091577a6b7d121202afbd2808134f117',
+      '0x00000000000000000000000057d4eaf1091577a6b7d121202afbd2808134f117',
   },
 } as const satisfies Record<string, DepositForBurnEvent>;

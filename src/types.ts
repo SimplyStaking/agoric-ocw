@@ -43,7 +43,8 @@ export type DepositForBurnEvent = {
   amount: bigint,
   mintRecipient: string,
   destinationDomain: number,
-  destinationTokenMessenger: string
+  destinationTokenMessenger: string,
+  sender: string
 }
 
 export type ChainConfig = {
