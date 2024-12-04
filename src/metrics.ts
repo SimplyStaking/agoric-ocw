@@ -95,9 +95,9 @@ export const incrementEventsCount = async (network: string) => {
     const metric = await eventsCount.get();
     let values = metric.values;
 
-    for(let value in values){
+    for (let value in values) {
         let labelNetwork = String(values[value].labels.network)
-        if(labelNetwork == network){
+        if (labelNetwork == network) {
             let val = values[value].value
             await setGaugeValue("eventsCount", network, val)
         }
@@ -114,9 +114,9 @@ export const incrementTotalAmount = async (network: string, amount: number) => {
     const metric = await totalAmount.get();
     let values = metric.values;
 
-    for(let value in values){
+    for (let value in values) {
         let labelNetwork = String(values[value].labels.network)
-        if(labelNetwork == network){
+        if (labelNetwork == network) {
             let val = values[value].value
             await setGaugeValue("totalAmount", network, val)
         }
@@ -132,9 +132,9 @@ export const incrementRevertedCount = async (network: string) => {
     const metric = await revertedTxsCount.get();
     let values = metric.values;
 
-    for(let value in values){
+    for (let value in values) {
         let labelNetwork = String(values[value].labels.network)
-        if(labelNetwork == network){
+        if (labelNetwork == network) {
             let val = values[value].value
             await setGaugeValue("revertedTxsCount", network, val)
         }
@@ -158,14 +158,14 @@ export const initialiseMetricsForNetwork = (network: string): void => {
 export const intialiseGauges = async () => {
     let gauges = await getAllGauges()
     // If no gauges found in DB
-    if(!gauges){
-        for(let chain of chainConfig){
+    if (!gauges) {
+        for (let chain of chainConfig) {
             initialiseMetricsForNetwork(chain.name)
         }
     }
     // Else get them from DB and set them
-    else{
-        for(let chain of chainConfig){
+    else {
+        for (let chain of chainConfig) {
             let network = chain.name
             eventsCount.set({ network }, gauges["eventsCount"] ? gauges["eventsCount"][network] ? gauges["eventsCount"][network] : 0 : 0);
             totalAmount.set({ network }, gauges["totalAmount"] ? gauges["totalAmount"][network] ? gauges["totalAmount"][network] : 0 : 0);
@@ -182,7 +182,7 @@ export const saveRPCStates = async () => {
     let rpcStates = await rpcBlockHeight.get()
     let rpcStatesValues = rpcStates.values;
 
-    for(let value in rpcStatesValues){
+    for (let value in rpcStatesValues) {
         let network = String(rpcStatesValues[value].labels.network)
         let height = rpcStatesValues[value].value
         logger.info(`Saving ${network} RPC state (${height})`)

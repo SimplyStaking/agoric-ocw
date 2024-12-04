@@ -7,10 +7,10 @@ import { startMultiChainListener } from "./listener";
 import { logger } from "./utils/logger";
 import { backfill } from "./backfill";
 import { monitorAgoric } from './submitter';
-
-import { createAgoricWebSocket, getInvitation, getLatestOffers, getOfferById, initAgoricState, initChainPolicyScraper, lastOfferId, watcherInvitation, } from './lib/agoric';
+import { createAgoricWebSocket, getInvitation, initAgoricState, initChainPolicyScraper, lastOfferId, watcherInvitation, } from './lib/agoric';
 import { WATCHER_WALLET_ADDRESS } from './config/config';
 import { setLastOfferId } from './lib/db';
+import apiRouter from './api';
 
 const app = express();
 const PORT = 3011;
@@ -20,10 +20,13 @@ app.get('/metrics', async (req, res) => {
   try {
     res.set('Content-Type', register.contentType);
     res.send(await register.metrics());
-  } catch (error:any) {
+  } catch (error: any) {
     res.status(500).send(error.toString());
   }
 });
+
+// Mount the routes at the `/api` path
+app.use('/api', apiRouter);
 
 const main = async () => {
   app.listen(PORT, () => {
@@ -35,7 +38,7 @@ const main = async () => {
   await initAgoricState();
 
   await getInvitation();
-  if(watcherInvitation == ""){
+  if (watcherInvitation == "") {
     logger.error(`Did not find an accepted watcher invitation for ${WATCHER_WALLET_ADDRESS}. Please accept one`)
     process.exit(1)
   }
@@ -55,8 +58,6 @@ const main = async () => {
   // Start multi chain listener
   logger.info("Starting Multi chain listener...")
   await startMultiChainListener()
-
-  
 }
 
 try {
@@ -91,12 +92,12 @@ function onProcessExit(callback: () => void): void {
 // On process exit
 onProcessExit(async () => {
   await saveRPCStates()
-  if(lastOfferId){
+  if (lastOfferId) {
     await setLastOfferId(lastOfferId)
   }
 })
 
 process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error.stack);
+  logger.error('Uncaught Exception:', error.stack);
 });
 

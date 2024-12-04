@@ -3,8 +3,8 @@ import { ACTIVE_AGORIC_RPC, AGORIC_RPC_CHECK_INTERVAL, TX_TIMEOUT_BLOCKS, WATCHE
 import { execSwingsetTransaction, getLatestBlockHeight, outputAction, watcherInvitation } from "./lib/agoric";
 import { addSubmission, getSubmission, updateSubmissionStatus } from "./lib/db";
 import { setAgoricActiveRpc } from "./metrics";
-import { AgoricOCWOffer, AgoricOCWOfferTemplate, AgoricSubmissionResponse, CCTPReOrgEvidence, CCTPTxEvidence, SubmissionStatus, TransactionStatus } from "./types";
-import {logger} from "./utils/logger";
+import { AgoricOCWOfferTemplate, AgoricSubmissionResponse, CCTPTxEvidence, SubmissionStatus, TransactionStatus } from "./types";
+import { logger } from "./utils/logger";
 
 /**
  * @param evidence evidence to submit
@@ -15,17 +15,17 @@ export async function submitToAgoric(evidence: CCTPTxEvidence) {
     let agoricRpcStatus = await getLatestBlockHeight()
     // Check if already submitted
     let submission = await getSubmission(evidence.txHash, evidence.status == TransactionStatus.REORGED)
-    if(submission && submission.submissionStatus != SubmissionStatus.CANCELLED && agoricRpcStatus.height < submission.timeoutHeight){
+    if (submission && submission.submissionStatus != SubmissionStatus.CANCELLED && agoricRpcStatus.height < submission.timeoutHeight) {
         logger.info(`Evidence for TX ${evidence.txHash} has status ${submission.submissionStatus} and a timeout height ${submission.timeoutHeight}. Current Agoric height is ${agoricRpcStatus.height}`)
         return
     }
 
-    if(evidence.status == TransactionStatus.REORGED){
+    if (evidence.status == TransactionStatus.REORGED) {
         logger.info(`REORGED TX: ${JSON.stringify(evidence)}`)
-        //Set normal submission to cancelled
+        // Set normal submission to cancelled
         await updateSubmissionStatus(evidence.txHash, false, SubmissionStatus.CANCELLED)
     }
-    else{
+    else {
         logger.info(`CONFIRMED TX: ${JSON.stringify(evidence)}`)
     }
 
@@ -36,20 +36,20 @@ export async function submitToAgoric(evidence: CCTPTxEvidence) {
             previousOffer: watcherInvitation,
             invitationMakerName: "SubmitEvidence",
             invitationArgs: [{
-                "aux": { 
-                    "forwardingChannel": evidence.forwardingChannel, 
-                    "recipientAddress": evidence.recipientAddress 
-                }, 
-                "blockHash": evidence.blockHash, 
-                "blockNumber": BigInt(evidence.blockNumber), 
-                "blockTimestamp": BigInt(evidence.blockTimestamp), 
-                "chainId": evidence.chainId, 
-                "tx": { 
-                    "amount": BigInt(evidence.amount), 
-                    "forwardingAddress": evidence.forwardingAddress 
-                }, 
+                "aux": {
+                    "forwardingChannel": evidence.forwardingChannel,
+                    "recipientAddress": evidence.recipientAddress
+                },
+                "blockHash": evidence.blockHash,
+                "blockNumber": BigInt(evidence.blockNumber),
+                "blockTimestamp": BigInt(evidence.blockTimestamp),
+                "chainId": evidence.chainId,
+                "tx": {
+                    "amount": BigInt(evidence.amount),
+                    "forwardingAddress": evidence.forwardingAddress
+                },
                 "txHash": evidence.txHash
-                }
+            }
             ],
         },
         proposal: {},
@@ -61,22 +61,22 @@ export async function submitToAgoric(evidence: CCTPTxEvidence) {
     };
 
     let id = Number(Date.now());
-    let offer: OfferSpec = {...templateOffer, id};
+    let offer: OfferSpec = { ...templateOffer, id };
 
     let offerData = outputAction({
-      method: "executeOffer",
-      offer,
+        method: "executeOffer",
+        offer,
     });
 
     let rpcStatus = await getLatestBlockHeight()
 
-    if(rpcStatus.syncing){
+    if (rpcStatus.syncing) {
         logger.warn(`Skipping submission because Agoric RPC is still syncing on height ${rpcStatus.height}`)
         return
     }
 
     // Set timeout height
-    let timeoutHeight = rpcStatus.height+TX_TIMEOUT_BLOCKS;
+    let timeoutHeight = rpcStatus.height + TX_TIMEOUT_BLOCKS;
     // Execute tx
     let response: AgoricSubmissionResponse = await execSwingsetTransaction(
         `wallet-action --allow-spend '${JSON.stringify(offerData)}' --gas-prices=0.01ubld --timeout-height=${timeoutHeight}`,
@@ -84,41 +84,31 @@ export async function submitToAgoric(evidence: CCTPTxEvidence) {
         keyring
     );
 
-    logger.info("Response: "+JSON.stringify(response))
+    logger.info("Response: " + JSON.stringify(response))
 
     // If transaction failed
-    if(response.code == 0){
+    if (response.code == 0) {
         logger.info(`Evidence sent successfully: ${response.txhash}`)
         // Set submission as in flight
         await addSubmission(String(id), evidence.txHash, evidence.status == TransactionStatus.REORGED, SubmissionStatus.INFLIGHT, timeoutHeight)
-
     }
-
-
-}
-
-/**
- * Checks for transactions to be submitted
- */
-export const checkForSubmission = () => {
-
 }
 
 /**
  * Monitors Agoric RPCs
  */
-export async function monitorAgoric(){
+export async function monitorAgoric() {
     setInterval(async () => {
         // Get status
         let status = await getLatestBlockHeight()
         // Get current active rpc
         let currentActive = ACTIVE_AGORIC_RPC
-        if(!status || status.syncing){
+        if (!status || status.syncing) {
             setAgoricActiveRpc(currentActive, false)
             // Get the next
             nextActiveAgoricRPC()
         }
-        else{
+        else {
             setAgoricActiveRpc(currentActive, true)
         }
     }, Number(AGORIC_RPC_CHECK_INTERVAL) * 1000)

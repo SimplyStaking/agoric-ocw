@@ -53,8 +53,8 @@ export const DB_URL = process.env.DB_URL
  * @returns the Chain config or null if the endpoint is not found
  */
 export const getChainFromEndpoint = (endpoint: string) => {
-  for(let chain of chainConfig){
-    if(chain.rpcUrl.includes(endpoint)){
+  for (let chain of chainConfig) {
+    if (chain.rpcUrl.includes(endpoint)) {
       return chain;
     }
   }
@@ -67,8 +67,8 @@ export const getChainFromEndpoint = (endpoint: string) => {
  * @returns the Chain config or null if the name is not found
  */
 export const getChainFromConfig = (chainName: string): ChainConfig | null => {
-  for(let chain of chainConfig){
-    if(chain.name == chainName){
+  for (let chain of chainConfig) {
+    if (chain.name == chainName) {
       return chain;
     }
   }
@@ -106,14 +106,14 @@ export const AGORIC_RPC_CHECK_INTERVAL = process.env.AGORIC_RPC_CHECK_INTERVAL |
 /**
  * Function to switch to the next Agoric RPC
  */
-export function nextActiveAgoricRPC(){
+export function nextActiveAgoricRPC() {
   // Check length and current
   let currentIndex = AGORIC_RPCS.indexOf(ACTIVE_AGORIC_RPC)
   // If there are more
-  if(currentIndex != AGORIC_RPCS.length){
-    ACTIVE_AGORIC_RPC = AGORIC_RPCS[currentIndex+1]
+  if (currentIndex != AGORIC_RPCS.length) {
+    ACTIVE_AGORIC_RPC = AGORIC_RPCS[currentIndex + 1]
   }
-  else{
+  else {
     ACTIVE_AGORIC_RPC = AGORIC_RPCS[0]
   }
 }
@@ -127,8 +127,9 @@ export const QUERY_PARAMS_INTERVAL = process.env.QUERY_PARAMS_INTERVAL || '300';
  * Wallet Address from which to send transactions
  */
 export const WATCHER_WALLET_ADDRESS = process.env.WATCHER_WALLET_ADDRESS || ""
-if(WATCHER_WALLET_ADDRESS == ""){
+if (WATCHER_WALLET_ADDRESS == "") {
   logger.error("WATCHER_WALLET_ADDRESS cannot be empty")
+  // Exit if no wallet address
   process.exit(1)
 }
 
@@ -146,3 +147,8 @@ export const TX_TIMEOUT_BLOCKS = Number(process.env.TX_TIMEOUT_BLOCKS || '3')
  * Holds the environment
  */
 export const ENV = process.env.ENV || "prod"
+
+/**
+ * Holds the api secret to query txs
+ */
+export const API_SECRET = process.env.API_SECRET || "XXXXXXX"

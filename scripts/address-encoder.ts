@@ -1,5 +1,4 @@
 #!/usr/bin/env tsx
-
 import { encode } from "../src/utils/address";
 
 // Get address from command line argument

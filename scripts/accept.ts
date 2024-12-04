@@ -3,24 +3,26 @@ import '@endo/init/pre-remoting.js';
 import '@endo/init/unsafe-fast.js';
 import { makeVstorageKit, boardSlottingMarshaller } from '@agoric/client-utils';
 import { ACTIVE_AGORIC_RPC, AGORIC_NETWORK } from '../src/config/config';
-
-/**
- * @import {BridgeAction} from '@agoric/smart-wallet/src/smartWallet.js';
- */
+import { BridgeAction, ExecuteOfferAction } from '@agoric/smart-wallet/src/smartWallet';
+import { OfferSpec } from '@agoric/smart-wallet/src/offers';
 
 const marshaller = boardSlottingMarshaller();
 export const INVITATION_MAKERS_DESC = 'oracle operator invitation';
 
 /**
+ * TOutputs the action to be executed
  * @param {BridgeAction} bridgeAction
  * @param {Pick<import('stream').Writable,'write'>} stdout
  */
-const outputAction = (bridgeAction: any, stdout: any) => {
+const outputAction = (bridgeAction: BridgeAction, stdout: any) => {
     const capData = marshaller.toCapData(harden(bridgeAction));
     stdout.write(JSON.stringify(capData));
     stdout.write('\n');
 };
 
+/**
+ * Function to create offer args to accept a watcher invitation
+ */
 export const accept = async () => {
     const vsk = await makeVstorageKit({ fetch }, {
         rpcAddrs: [ACTIVE_AGORIC_RPC], network: AGORIC_NETWORK
@@ -28,9 +30,8 @@ export const accept = async () => {
     const instance = vsk.agoricNames.instance.fastUsdc;
     assert(instance, 'fastUsdc instance not in agoricNames');
 
-    /** @type {OfferSpec} */
     let offerId = `watcherAccept-${Date.now()}`
-    const offer = {
+    const offer: OfferSpec = {
         id: offerId,
         invitationSpec: {
             source: 'purse',
@@ -40,8 +41,7 @@ export const accept = async () => {
         proposal: {},
     };
 
-    /** @type {ExecuteOfferAction} */
-    const bridgeAction = {
+    const bridgeAction: ExecuteOfferAction = {
         method: 'executeOffer',
         offer,
     };
@@ -49,7 +49,7 @@ export const accept = async () => {
     outputAction(bridgeAction, process.stdout);
 }
 
-
+// Execute offer
 (async () => {
     await accept()
 })();

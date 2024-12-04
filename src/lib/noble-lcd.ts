@@ -1,36 +1,7 @@
 import { ENV, NOBLE_LCD_URL } from '../config/config';
-import type { IBCChannelID, NobleAddress } from '../types';
+import type { ForwardingAccount, IBCChannelID, NobleAddress, QueryAccountError, QueryAccountResponse } from '../types';
 import { logger } from '../utils/logger';
 import { vStoragePolicy } from './agoric';
-
-export type BaseAccount = {
-  '@type': '/cosmos.auth.v1beta1.BaseAccount';
-  address: NobleAddress;
-  pub_key: {
-    '@type': string;
-    key: string;
-  } | null;
-  account_number: string;
-  sequence: string;
-};
-
-export type ForwardingAccount = {
-  '@type': '/noble.forwarding.v1.ForwardingAccount';
-  base_account: Omit<BaseAccount, '@type'>;
-  channel: IBCChannelID;
-  recipient: string; // e.g. agoric1234+osmos123
-  created_at: string;
-};
-
-export type QueryAccountResponse = {
-  account: BaseAccount | ForwardingAccount;
-};
-
-export type QueryAccountError = {
-  code: number;
-  message: string;
-  details: string[];
-};
 
 export const makeNobleLCD = ({
   fetch = globalThis.fetch,
@@ -47,21 +18,22 @@ export const makeNobleLCD = ({
   queryAccount: async (
     address: NobleAddress,
   ): Promise<QueryAccountResponse | QueryAccountError> => {
-    if(address == "noble1x0ydg69dh6fqvr27xjvp6maqmrldam6yfelqkd"){
+    if (address == "noble1x0ydg69dh6fqvr27xjvp6maqmrldam6yfelqkd" && ENV != "prod") {
       return {
-        account : {
-        '@type': '/noble.forwarding.v1.ForwardingAccount',
-        base_account: {
-          account_number: '121',
-          address: 'noble1x0ydg69dh6fqvr27xjvp6maqmrldam6yfelqkd',
-          pub_key: null,
-          sequence: '0',
-        },
-        channel: 'channel-99',
-        created_at: '10599524',
-        recipient:
-          'agoric16kv2g7snfc4q24vg3pjdlnnqgngtjpwtetd2h689nz09lcklvh5s8u37ek+osmo183dejcnmkka5dzcu9xw6mywq0p2m5peks28men',
-      }} 
+        account: {
+          '@type': '/noble.forwarding.v1.ForwardingAccount',
+          base_account: {
+            account_number: '121',
+            address: 'noble1x0ydg69dh6fqvr27xjvp6maqmrldam6yfelqkd',
+            pub_key: null,
+            sequence: '0',
+          },
+          channel: 'channel-21',
+          created_at: '10599524',
+          recipient:
+            'agoric16kv2g7snfc4q24vg3pjdlnnqgngtjpwtetd2h689nz09lcklvh5s8u37ek+osmo183dejcnmkka5dzcu9xw6mywq0p2m5peks28men',
+        }
+      }
     }
     try {
       const res = await fetch(
@@ -129,7 +101,6 @@ export const getForwardingAccount =
 
       let expectedChannelId = ENV == "prod" ? vStoragePolicy.nobleAgoricChannelId : "channel-21"
       // we are only interested in agoric plus address accounts
-      // TODO use actual Agoric settlement LCA address
       if (
         (!accountDetails.recipient.startsWith('agoric') &&
           !accountDetails.recipient.includes('+')) ||

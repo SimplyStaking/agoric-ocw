@@ -1,3 +1,5 @@
+import { InvitationSpec } from "@agoric/smart-wallet/src/invitations";
+
 export type NobleAddress = `noble1${string}`;
 export type AgoricAddress = `agoric${string}`;
 export type IBCChannelID = `channel-${number}`;
@@ -87,7 +89,7 @@ export interface CctpTxSubmission {
 }
 
 export type AgoricOCWOfferTemplate = {
-  invitationSpec: any;
+  invitationSpec: InvitationSpec;
   proposal: {};
 }
 
@@ -110,3 +112,32 @@ export type AgoricSubmissionResponse = {
   raw_log: string,
   code: number
 }
+
+export type BaseAccount = {
+  '@type': '/cosmos.auth.v1beta1.BaseAccount';
+  address: NobleAddress;
+  pub_key: {
+    '@type': string;
+    key: string;
+  } | null;
+  account_number: string;
+  sequence: string;
+};
+
+export type ForwardingAccount = {
+  '@type': '/noble.forwarding.v1.ForwardingAccount';
+  base_account: Omit<BaseAccount, '@type'>;
+  channel: IBCChannelID;
+  recipient: string; // e.g. agoric1234+osmos123
+  created_at: string;
+};
+
+export type QueryAccountResponse = {
+  account: BaseAccount | ForwardingAccount;
+};
+
+export type QueryAccountError = {
+  code: number;
+  message: string;
+  details: string[];
+};

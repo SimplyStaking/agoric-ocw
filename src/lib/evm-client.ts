@@ -41,7 +41,7 @@ function createWebSocket(chain: ChainConfig) {
     }, RPC_RECONNECT_DELAY * 1000);
   });
 
-  ws.on("error", (error: any) => {
+  ws.on("error", (error) => {
     logger.error(`WebSocket error on ${chain.name}: ${error}`);
   });
 
@@ -54,16 +54,16 @@ function createWebSocket(chain: ChainConfig) {
  * @returns The websocket provider for the chain
  */
 const makeWebSocketProvider = (chain: ChainConfig) => {
- // Setup WebSocket provider
- let ws = createWebSocket(chain)
- return new WebSocketProvider(ws);
+  // Setup WebSocket provider
+  let ws = createWebSocket(chain)
+  return new WebSocketProvider(ws);
 }
 
- /**
- * Get the singleton instance of the websocket provider for the given chain
- * @param chain the chain for which to get the websocket provider
- * @returns The websocket provider for the given chain
- */
+/**
+* Get the singleton instance of the websocket provider for the given chain
+* @param chain the chain for which to get the websocket provider
+* @returns The websocket provider for the given chain
+*/
 export const getWsProvider = (chain: ChainConfig): WebSocketProvider => {
   if (!providers[chain.name]) {
     logger.debug(`Creating new Websocket provider client instance for ${chain.name}.`);

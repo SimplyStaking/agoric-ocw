@@ -2,18 +2,18 @@ import { addRemovedTX, addTransaction, getTransactionByHash, updateTransactionSt
 import { NobleLCD, getForwardingAccount, getNobleLCDClient } from "./lib/noble-lcd";
 import { CCTPTxEvidence, DepositForBurnEvent, NobleAddress, TransactionStatus } from "./types";
 import { decodeToNoble } from "./utils/address";
-import {logger} from "./utils/logger";
+import { logger } from "./utils/logger";
 import { incrementEventsCount, incrementRevertedCount, incrementTotalAmount } from "./metrics";
 import { vStoragePolicy } from "./lib/agoric";
 
 export async function processCCTPBurnEventLog(event: DepositForBurnEvent, originChain: string, nobleLCD = getNobleLCDClient()): (Promise<CCTPTxEvidence | null>) {
     // If not to noble
-    if(event.destinationDomain != (vStoragePolicy.nobleDomainId || 4)){
+    if (event.destinationDomain != (vStoragePolicy.nobleDomainId || 4)) {
         logger.debug(`NOT FOR NOBLE from ${originChain}: ${event.transactionHash}`)
         return null;
     }
-    
-    logger.info(`Found DepositForBurn from ${originChain} to NOBLE (TX: ${event.transactionHash} on block ${event.blockNumber})`)    
+
+    logger.info(`Found DepositForBurn from ${originChain} to NOBLE (TX: ${event.transactionHash} on block ${event.blockNumber})`)
 
     // Get noble address
     let nobleAddress = decodeToNoble(event.mintRecipient || "")
@@ -21,22 +21,22 @@ export async function processCCTPBurnEventLog(event: DepositForBurnEvent, origin
     let agoricForwardingAcct = await getForwardingAccount(nobleLCD, nobleAddress as NobleAddress)
 
     // If not an agoric forwarding account
-    if(!agoricForwardingAcct){
+    if (!agoricForwardingAcct) {
         logger.error(`(TX ${event.transactionHash}) ${nobleAddress} not an Agoric forwarding account `)
         return null;
     }
 
     logger.info(`(TX ${event.transactionHash}) ${nobleAddress} is an Agoric forwarding address (${agoricForwardingAcct.channel} -> ${agoricForwardingAcct.recipient})`)
-    
+
     // Get tx from DB if already there
     let tx = await getTransactionByHash(event.transactionHash, originChain)
 
     // If reorged
-    if(event.removed){
+    if (event.removed) {
         logger.info(`${event.transactionHash} on ${originChain} was REORGED`)
-        
-         // Check if tx exists
-         if(tx && tx?.status == TransactionStatus.REORGED){
+
+        // Check if tx exists
+        if (tx && tx?.status == TransactionStatus.REORGED) {
             logger.debug(`Reorged TX ${event.transactionHash} on ${originChain} already processed`)
             return null;
         }
@@ -64,8 +64,8 @@ export async function processCCTPBurnEventLog(event: DepositForBurnEvent, origin
         }
     }
 
-     // Check if tx exists
-     if(tx && tx?.status == TransactionStatus.CONFIRMED){
+    // Check if tx exists
+    if (tx && tx?.status == TransactionStatus.CONFIRMED) {
         logger.debug(`TX ${event.transactionHash} on ${originChain} already processed`)
         return null;
     }
@@ -84,7 +84,8 @@ export async function processCCTPBurnEventLog(event: DepositForBurnEvent, origin
         forwardingAddress: nobleAddress,
         forwardingChannel: vStoragePolicy.nobleAgoricChannelId,
         blockHash: event.blockHash,
-        blockTimestamp: Number(event.blockTimestamp)
+        blockTimestamp: Number(event.blockTimestamp),
+        created: Date.now()
     })
 
     return {
