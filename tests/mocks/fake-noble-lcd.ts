@@ -1,8 +1,6 @@
-import type { NobleAddress } from '../../src/types.js';
+import type { NobleAddress, QueryAccountError, QueryAccountResponse } from '../../src/types.js';
 import type {
   NobleLCD,
-  QueryAccountError,
-  QueryAccountResponse,
 } from '../../src/lib/noble-lcd.js';
 
 export const SCENARIOS: Record<string, NobleAddress> = {

@@ -41,7 +41,7 @@ function createWebSocket(chain: ChainConfig) {
     }, RPC_RECONNECT_DELAY * 1000);
   });
 
-  ws.on("error", (error: any) => {
+  ws.on("error", (error) => {
     logger.error(`WebSocket error on ${chain.name}: ${error}`);
   });
 

@@ -150,10 +150,7 @@ export const execSwingsetTransaction = (
 export const getCurrent = async (addr: string, { readPublished }: any) => {
     // Partial because older writes may not have had all properties
     // NB: assumes changes are only additions
-    let current =
-      /** @type {Partial<import('@agoric/smart-wallet/src/smartWallet.js').CurrentWalletRecord> | undefined} */ (
-            await readPublished(`wallet.${addr}.current`)
-        );
+    let current = await readPublished(`wallet.${addr}.current`)
     if (current === undefined) {
         throw Error(`undefined current node for ${addr}`);
     }
@@ -414,32 +411,6 @@ export const getOfferById = async (id: string) => {
     }
     return null
 };
-
-
-// /**
-//  * Function to get offers and balances
-//  * @param {Promise<import('@agoric/casting/src/follower-cosmjs').
-// * ValueFollower<T>>} follower offers and balances
-// * @param {string} oracle oracle address
-// * @returns {object} an object containing the offers and balances
-// * @returns {object[]} returns.offers Array of offers
-// * @returns {object[]} returns.balances Array of balances
-// */
-// export const getOffersAndBalances = async (oracle) => {
-//     let toReturn: WatcherStatus = {
-//         offers: await getOffers(follower),
-//         balances: [],
-//     };
-
-//     // Get balances
-//     let balances = JSON.parse(execSync(`agd query --node ${networkConfig.rpcAddrs[0]} bank balances ${oracle} --output=json`).toString()).balances;
-
-//     for (let i = 0; i < balances.length; i++) {
-//         toReturn["balances"].push(balances[i]);
-//     }
-
-//     return toReturn;
-// };
 
 /**
  * A Function to output an action

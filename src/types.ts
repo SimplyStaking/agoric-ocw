@@ -1,3 +1,5 @@
+import { InvitationSpec } from "@agoric/smart-wallet/src/invitations";
+
 export type NobleAddress = `noble1${string}`;
 export type AgoricAddress = `agoric${string}`;
 export type IBCChannelID = `channel-${number}`;
@@ -87,7 +89,7 @@ export interface CctpTxSubmission {
 }
 
 export type AgoricOCWOfferTemplate = {
-  invitationSpec: any;
+  invitationSpec: InvitationSpec;
   proposal: {};
 }
 
