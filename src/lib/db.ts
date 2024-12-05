@@ -78,7 +78,7 @@ export interface IState extends Document {
 const transactionSchema = new Schema<ITransaction>({
     chain: { type: String, required: true },
     blockNumber: { type: Number, required: true },
-    transactionHash: { type: String, required: true, unique: true },
+    transactionHash: { type: String, required: true },
     status: { type: String, enum: Object.values(TransactionStatus), required: true },
     amount: { type: Number, required: true },
     recipientAddress: { type: String, required: true },
@@ -162,6 +162,24 @@ export const updateTransactionStatus = async (
         { transactionHash, chain },
         { status },
         { new: true }
+    );
+};
+
+/**
+ * Updates the forwarding account and channel of a transaction based on its _id.
+ * @param {string} _id - The id of the transaction to update.
+ * @param {string} forwardingChannel - The new channel address to update.
+ * @param {string} recipientAddress - The new recipient address to update.
+ * @returns {Promise<ITransaction | null>} - The updated transaction, or null if not found.
+ */
+export const updateTransactionRecipientandChannel = async (
+    _id: string,
+    recipientAddress: string,
+    forwardingChannel: string
+): Promise<ITransaction | null> => {
+    return await Transaction.findOneAndUpdate(
+        { _id },
+        { recipientAddress, forwardingChannel }
     );
 };
 
@@ -292,9 +310,28 @@ export const getTransactionByHash = async (
  */
 export const getTransactionsSince = async (
     timestamp: Number,
-): Promise<ITransaction[] | null> => {
-    return await Transaction.find({ created: { $gte: timestamp } }).select('-_id');;
+): Promise<ITransaction[]> => {
+    return await Transaction.find({ created: { $gte: timestamp } }).select('-_id');
 };
+
+/**
+ * Gets transactions with unknown forwarding address created since a particular timestamp
+ * @param {Number} timestamp - The timestamps since when to get.
+ * @returns {Promise<ITransaction[] | null>} - The transactions created since the passed timestamp
+ */
+export const getUnknownFATransactionsSince = async (
+    timestamp: Number,
+): Promise<ITransaction[]> => {
+    return await Transaction.find({ created: { $gte: timestamp }, recipientAddress: "UNKNOWN" })
+};
+
+/**
+ * Removes transaction from DB
+ * @param _id id of the tx to remove
+ */
+export const removeTransaction = async (_id: string) => {
+    await Transaction.findOneAndDelete({ _id });
+}
 
 /**
  * Retrieves all gauges from the state document.

@@ -78,8 +78,10 @@ export async function processCCTPBurnEventLog(event: DepositForBurnEvent, origin
     }
 
     let amount = Number(event.amount)
-    incrementEventsCount(originChain)
-    incrementTotalAmount(originChain, amount)
+    if (agoricForwardingAcct.recipient != "UNKNOWN") {
+        incrementEventsCount(originChain)
+        incrementTotalAmount(originChain, amount)
+    }
 
     await addTransaction({
         chain: originChain,

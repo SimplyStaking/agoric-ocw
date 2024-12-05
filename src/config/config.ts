@@ -43,8 +43,19 @@ export const chainConfig = [
   },
 ] as const;
 
+/**
+ * Holds the Noble LCD URL (Port 1317)
+ */
 export const NOBLE_LCD_URL = process.env.NOBLE_LCD_URL || 'https://noble-api.polkachu.com';
 
+/**
+ * Holds the Noble RPC URL (Port 26657)
+ */
+export const NOBLE_RPC_URL = process.env.NOBLE_RPC_URL || 'https://noble-rpc.polkachu.com';
+
+/**
+ * Holds the Postgres URL to connect to
+ */
 export const DB_URL = process.env.DB_URL
 
 /**
@@ -79,6 +90,10 @@ export const getChainFromConfig = (chainName: string): ChainConfig | null => {
  * The time in seconds to wait between each RPC reconnection attemot
  */
 export const RPC_RECONNECT_DELAY = parseInt(process.env.RPC_RECONNECT_DELAY || '3', 10);
+if (isNaN(RPC_RECONNECT_DELAY)) {
+  logger.error(`RPC_RECONNECT_DELAY must be a valid number`)
+  process.exit(1)
+}
 
 /**
  * ABI for the `DepositForBurn` event
@@ -121,7 +136,11 @@ export function nextActiveAgoricRPC() {
 /**
  * Interval between each request to query parameters
  */
-export const QUERY_PARAMS_INTERVAL = process.env.QUERY_PARAMS_INTERVAL || '300';
+export const QUERY_PARAMS_INTERVAL = Number(process.env.QUERY_PARAMS_INTERVAL || '300');
+if (isNaN(QUERY_PARAMS_INTERVAL)) {
+  logger.error(`QUERY_PARAMS_INTERVAL must be a valid number`)
+  process.exit(1)
+}
 
 /**
  * Wallet Address from which to send transactions
@@ -137,11 +156,19 @@ if (WATCHER_WALLET_ADDRESS == "") {
  * Holds the maximum number of offers to loop when getting offers
  */
 export const MAX_OFFERS_TO_LOOP = Number(process.env.MAX_OFFERS_TO_LOOP || '25')
+if (isNaN(MAX_OFFERS_TO_LOOP)) {
+  logger.error(`MAX_OFFERS_TO_LOOP must be a valid number`)
+  process.exit(1)
+}
 
 /**
  * Holds the maximum number of blocks to timeout the tx
  */
 export const TX_TIMEOUT_BLOCKS = Number(process.env.TX_TIMEOUT_BLOCKS || '3')
+if (isNaN(TX_TIMEOUT_BLOCKS)) {
+  logger.error(`TX_TIMEOUT_BLOCKS must be a valid number`)
+  process.exit(1)
+}
 
 /**
  * Holds the environment
@@ -152,3 +179,12 @@ export const ENV = process.env.ENV || "prod"
  * Holds the api secret to query txs
  */
 export const API_SECRET = process.env.API_SECRET || "XXXXXXX"
+
+/**
+ * Holds the maximum number of minutes to hold transactions in the DB without a FA Account
+ */
+export const MINUTES_HOLDING_UNKNOWN_FA = Number(process.env.MINUTES_HOLDING_UNKNOWN_FA || '30')
+if (isNaN(MINUTES_HOLDING_UNKNOWN_FA)) {
+  logger.error(`MINUTES_HOLDING_UNKNOWN_FA must be a valid number`)
+  process.exit(1)
+}
