@@ -1,7 +1,13 @@
-import { ENV, NOBLE_LCD_URL } from '../config/config';
-import type { ForwardingAccount, IBCChannelID, NobleAddress, QueryAccountError, QueryAccountResponse } from '../types';
+import { ENV, MINUTES_HOLDING_UNKNOWN_FA, NOBLE_LCD_URL, NOBLE_RPC_URL, RPC_RECONNECT_DELAY } from '../config/config';
+import { incrementEventsCount, incrementTotalAmount, setRpcBlockHeight } from '../metrics';
+import type { ForwardingAccount, NobleAddress, QueryAccountError, QueryAccountResponse } from '../types';
 import { logger } from '../utils/logger';
 import { vStoragePolicy } from './agoric';
+import { getUnknownFATransactionsSince, removeTransaction, updateTransactionRecipientandChannel } from './db';
+import WebSocket from 'ws';
+
+// Holds the Noble WS Provider
+export let nobleWsProvider: WebSocket;
 
 export const makeNobleLCD = ({
   fetch = globalThis.fetch,
@@ -119,10 +125,20 @@ export const getForwardingAccount =
       return accountDetails;
 
     } catch (err) {
-      logger.error(`Failed to query noble to get forwarding account: ${err}`)
-      return null;
+      logger.error(`Failed to query noble to get forwarding account ${address}: ${err}`)
+      return {
+        '@type': '/noble.forwarding.v1.ForwardingAccount',
+        base_account: {
+          address: 'noble1',
+          pub_key: null,
+          account_number: "",
+          sequence: "",
+        },
+        channel: "channel-0",
+        recipient: "UNKNOWN",
+        created_at: ""
+      }
     }
-
 
   };
 
@@ -146,3 +162,72 @@ export const getNobleLCDClient = (): NobleLCD => {
 
   return nobleLCDInstance;
 };
+
+/**
+ * Creates a websocket to be used for the websocket provider for Noble
+ */
+export function createNobleWebSocket() {
+  let url = NOBLE_RPC_URL.replace("http", "ws")
+  url = NOBLE_RPC_URL + "/websocket"
+  nobleWsProvider = new WebSocket(url);
+
+  nobleWsProvider.on("open", () => {
+    logger.debug(`Connected to Noble on ${url}`);
+    nobleWsProvider.send(` { "jsonrpc": "2.0", "method": "subscribe", "id": 0, "params": { "query": "tm.event='NewBlock'" } }`)
+  });
+
+  // Listen for new blocks
+  nobleWsProvider.on('message', async (message: string) => {
+    let msgJSON = JSON.parse(message)
+    if (msgJSON.result.data) {
+      let newHeight = Number(msgJSON.result.data.value.block.header.height)
+      setRpcBlockHeight("Noble", newHeight)
+      logger.debug(`New block from Noble: ${newHeight}`);
+
+      // Get unknown transactions and query their forwarding address
+      let since = Date.now() - (MINUTES_HOLDING_UNKNOWN_FA * 60 * 1000)
+      let txs = await getUnknownFATransactionsSince(since)
+      let nobleClient = getNobleLCDClient()
+
+      // For each transaction query the noble forwarding account
+      for (let tx of txs) {
+        let forwardingAddress = tx.forwardingAddress
+        let forwardingAccount = await getForwardingAccount(nobleClient, forwardingAddress as NobleAddress)
+
+        // If null, discard the tx because it is not an agoric fa
+        if (!forwardingAccount) {
+          logger.debug(`TX (${tx.transactionHash}) is being removed as the recipient was found to be a non-Agoric address. FA was newly created after TX`)
+          // Remove tx
+          await removeTransaction(tx._id as string)
+          return
+        }
+
+        // If an agoric forwarding account, update TX in db
+        if (forwardingAccount?.recipient != "UNKNOWN") {
+          logger.debug(`Recipient address for TX (${tx.transactionHash}) was updated to ${forwardingAccount?.recipient}. FA was newly created after TX`)
+          incrementEventsCount(tx.chain)
+          incrementTotalAmount(tx.chain, tx.amount)
+
+          // Update tx FA
+          await updateTransactionRecipientandChannel(tx._id as string, forwardingAccount?.recipient as string, forwardingAccount?.channel as string)
+          return
+        }
+
+        logger.debug(`Forwarding account for ${forwardingAddress} is yet to be created`)
+      }
+    }
+  });
+
+  nobleWsProvider.on("close", () => {
+    logger.error(`Disconnected on Noble. Reconnecting...`);
+
+    setTimeout(() => {
+      // Go to next RPC in list
+      createNobleWebSocket();
+    }, RPC_RECONNECT_DELAY * 1000);
+  });
+
+  nobleWsProvider.on("error", (error: any) => {
+    logger.error(`WebSocket error on Noble: ${error}`);
+  });
+}

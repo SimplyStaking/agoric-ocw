@@ -11,6 +11,7 @@ import { createAgoricWebSocket, getInvitation, initAgoricState, initChainPolicyS
 import { WATCHER_WALLET_ADDRESS } from './config/config';
 import { setLastOfferId } from './lib/db';
 import apiRouter from './api';
+import { createNobleWebSocket } from './lib/noble-lcd';
 
 const app = express();
 const PORT = 3011;
@@ -42,7 +43,9 @@ const main = async () => {
     logger.error(`Did not find an accepted watcher invitation for ${WATCHER_WALLET_ADDRESS}. Please accept one`)
     process.exit(1)
   }
+
   createAgoricWebSocket()
+  createNobleWebSocket()
 
   // Initialise gauges
   logger.info("Initialising gauges...")

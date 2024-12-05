@@ -8,7 +8,7 @@ This solution listens to CCTP transactions from other chains, and if the mint re
 
 2. Creates a websocket connection to multiple chains and has automatic reconnections if the connection gets dropped
 
-3. Listens for ```event DepositForBurn(uint64 indexed nonce, address indexed burnToken, uint256 amount, address indexed depositor, bytes32 mintRecipient, uint32 destinationDomain, bytes32 destinationTokenMessenger, bytes32 destinationCaller)"``` on multiple chains
+3. Listens for ```event DepositForBurn(uint64 indexed nonce, address indexed burnToken, uint256 amount, address indexed depositor, bytes32 mintRecipient, uint32 destinationDomain, bytes32 destinationTokenMessenger, bytes32 destinationCaller)``` on multiple chains
 
 4. Records a TX in the DB if:
     - The Destination Domain is 4
@@ -36,6 +36,10 @@ This solution listens to CCTP transactions from other chains, and if the mint re
     - On every new block
         - get the new offers from the last observed, Set all these offers to CONFIRMED in DB
         - Loop through in flight txs from db whose timeout height is equal or less than the new block's height and retry it
+
+9. Stores TXs of Events with a FA which does not resolve yet (is yet to be created). These are held in the DB for a maximum of MINUTES_HOLDING_UNKNOWN_FA. On every new Noble block, these addresses are queried again.
+    - If the FA resolves to a non-Agoric address, the TX is removed from the DB
+    - If the FA resolves to an Agoric address, it is processed normally and submitted to Agoric as evidence
 
 
 ### Testing Environment
