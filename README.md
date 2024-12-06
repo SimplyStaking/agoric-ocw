@@ -84,7 +84,7 @@ anvil --fork-url <eth_mainnet_rpc> --block-time 5 --host 0.0.0.0
 3. Accept watcher invitation
 ```
 node_modules/.bin/tsx ./scripts/accept.ts > acceptWatcher.json
-agoric wallet send --offer acceptWatcher.json --from agoric1ee9hr0jyrxhy999y755mp862ljgycmwyp4pl7q  --keyring-backend="test" --home="./binaries"
+./binaries/agoric wallet send --offer acceptWatcher.json --from agoric1ee9hr0jyrxhy999y755mp862ljgycmwyp4pl7q  --keyring-backend="test" --home="./binaries"
 ```
 
 4. Perform CCTP transfers
