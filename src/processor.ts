@@ -6,6 +6,7 @@ import { logger } from "./utils/logger";
 import { incrementEventsCount, incrementRevertedCount, incrementTotalAmount } from "./metrics";
 import { vStoragePolicy } from "./lib/agoric";
 import { ENV } from "./config/config";
+import { UNKNOWN_FA } from "./constants";
 
 export async function processCCTPBurnEventLog(event: DepositForBurnEvent, originChain: string, nobleLCD = getNobleLCDClient()): (Promise<CCTPTxEvidence | null>) {
     // If not to noble
@@ -78,7 +79,8 @@ export async function processCCTPBurnEventLog(event: DepositForBurnEvent, origin
     }
 
     let amount = Number(event.amount)
-    if (agoricForwardingAcct.recipient != "UNKNOWN") {
+    // TODO: make constant
+    if (agoricForwardingAcct.recipient != UNKNOWN_FA) {
         incrementEventsCount(originChain)
         incrementTotalAmount(originChain, amount)
     }

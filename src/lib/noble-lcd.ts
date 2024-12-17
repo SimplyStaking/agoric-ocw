@@ -1,4 +1,5 @@
 import { ENV, MINUTES_HOLDING_UNKNOWN_FA, NOBLE_LCD_URL, NOBLE_RPC_URL, RPC_RECONNECT_DELAY } from '../config/config';
+import { UNKNOWN_FA } from '../constants';
 import { incrementEventsCount, incrementTotalAmount, setRpcBlockHeight } from '../metrics';
 import type { ForwardingAccount, NobleAddress, QueryAccountError, QueryAccountResponse } from '../types';
 import { logger } from '../utils/logger';
@@ -135,7 +136,7 @@ export const getForwardingAccount =
           sequence: "",
         },
         channel: "channel-0",
-        recipient: "UNKNOWN",
+        recipient: UNKNOWN_FA,
         created_at: ""
       }
     }
@@ -203,7 +204,7 @@ export function createNobleWebSocket() {
         }
 
         // If an agoric forwarding account, update TX in db
-        if (forwardingAccount?.recipient != "UNKNOWN") {
+        if (forwardingAccount?.recipient != UNKNOWN_FA) {
           logger.debug(`Recipient address for TX (${tx.transactionHash}) was updated to ${forwardingAccount?.recipient}. FA was newly created after TX`)
           incrementEventsCount(tx.chain)
           incrementTotalAmount(tx.chain, tx.amount)

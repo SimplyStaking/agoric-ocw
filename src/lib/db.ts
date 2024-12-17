@@ -3,6 +3,7 @@ import { DB_URL } from '../config/config';  // Import your DB connection URL fro
 import { SubmissionStatus, TransactionStatus } from '../types';
 import { logger } from '../utils/logger';
 import { vStoragePolicy } from './agoric';
+import { UNKNOWN_FA } from '../constants';
 
 let isConnected = false; // Variable to track the connection status
 
@@ -322,7 +323,7 @@ export const getTransactionsSince = async (
 export const getUnknownFATransactionsSince = async (
     timestamp: Number,
 ): Promise<ITransaction[]> => {
-    return await Transaction.find({ created: { $gte: timestamp }, recipientAddress: "UNKNOWN" })
+    return await Transaction.find({ created: { $gte: timestamp }, recipientAddress: UNKNOWN_FA })
 };
 
 /**
