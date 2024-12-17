@@ -8,7 +8,8 @@ import { ChainConfig, DepositForBurnEvent, Hex, TransactionStatus } from './type
 import { ContractEventPayload } from 'ethers';
 import { getWsProvider } from './lib/evm-client';
 import { vStoragePolicy } from './lib/agoric';
-import { getTransactionsToBeSentForChain } from './lib/db';
+import { getAllHeights, getTransactionsToBeSentForChain, setHeightForChain } from './lib/db';
+import { backfillChain } from './backfill';
 
 /**
  * Listens for `DepositForBurn` events and new blocks, and handles reconnections on error.
@@ -54,9 +55,16 @@ export function listen(chain: ChainConfig) {
 
   // Listen for new blocks
   wsProvider.on("block", async (blockNumber) => {
-    setRpcAlive(name, true);
-    setRpcBlockHeight(name, blockNumber)
     logger.debug(`New block from ${chain.name}: ${blockNumber}`)
+
+    let currentHeights = await getAllHeights()
+    let currentHeight = currentHeights ? currentHeights[chain.name] : 0;
+
+    if (blockNumber > currentHeight + 1) {
+      logger.info(`Backfilling for ${chain.name} from ${currentHeight + 1}. This happened because there were missed blocks from WS before block ${blockNumber}.`)
+      let chainConfig = await getChainFromConfig(chain.name)
+      await backfillChain(chainConfig!, currentHeight + 1)
+    }
 
     let transactions = await getTransactionsToBeSentForChain(chain.name, blockNumber)
     // For each transaction to be submitted, submit
@@ -75,6 +83,12 @@ export function listen(chain: ChainConfig) {
       }
       await submitToAgoric(evidence)
     }
+
+    setRpcAlive(name, true);
+    setRpcBlockHeight(name, blockNumber)
+
+    // Set height in DB
+    await setHeightForChain(chain.name, blockNumber);
   });
 
 }
@@ -91,6 +105,7 @@ export async function startMultiChainListener() {
     }
     else {
       logger.error(`DID NOT FIND CHAIN CONFIG FOR ${chain}`)
+      process.exit(1);
     }
   }
 }
