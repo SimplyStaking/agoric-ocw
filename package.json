@@ -1,6 +1,6 @@
 {
   "name": "agoric-ocw",
-  "version": "1.0.0",
+  "version": "3.0.0",
   "type": "module",
   "description": "Fast USDC off chain watcher for Agoric",
   "main": "index.js",
@@ -11,7 +11,7 @@
   "keywords": [
     "agoric"
   ],
-  "author": "Jacques Vella Critien",
+  "author": "Simply Staking",
   "license": "ISC",
   "dependencies": {
     "@agoric/casting": "^0.4.3-u18.2",
