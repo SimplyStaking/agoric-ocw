@@ -11,7 +11,7 @@ config();
 export const chainConfig = [
   {
     name: "Ethereum",
-    rpcUrl: process.env.MAINNET_RPC_URL || '',
+    rpcUrl: process.env.ETHEREUM_MAINNET_RPC_URL || '',
     contractAddress: "0xBd3fa81B58Ba92a82136038B25aDec7066af3155",
   },
   {
