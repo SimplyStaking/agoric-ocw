@@ -1,7 +1,7 @@
 export default {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  testMatch: ['**/tests/**/*.test.ts'],
+  testMatch: ['**/test/**/*.test.ts'],
   transformIgnorePatterns: [],
   rootDir: './',
 }
