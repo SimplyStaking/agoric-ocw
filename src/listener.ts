@@ -60,6 +60,7 @@ export function listen(chain: ChainConfig) {
     let currentHeights = await getAllHeights()
     let currentHeight = currentHeights ? currentHeights[chain.name] : 0;
 
+    // Only perform backfill if the WS subsription skips a hieght
     if (blockNumber > currentHeight + 1) {
       logger.info(`Backfilling for ${chain.name} from ${currentHeight + 1}. This happened because there were missed blocks from WS before block ${blockNumber}.`)
       let chainConfig = await getChainFromConfig(chain.name)
