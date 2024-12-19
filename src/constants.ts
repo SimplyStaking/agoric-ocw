@@ -1,3 +1,4 @@
+import { boardSlottingMarshaller } from '@agoric/client-utils';
 import { BaseAccount, ForwardingAccount } from "./types";
 
 export const UNKNOWN_FA = "UNKNOWN";
@@ -18,3 +19,7 @@ export const TESTING_NOBLE_FA: BaseAccount | ForwardingAccount = {
     recipient:
         'agoric16kv2g7snfc4q24vg3pjdlnnqgngtjpwtetd2h689nz09lcklvh5s8u37ek+osmo183dejcnmkka5dzcu9xw6mywq0p2m5peks28men',
 };
+
+export const PORT = 3011;
+export const MARSHALLER = boardSlottingMarshaller();
+export const INVITATION_MAKERS_DESC = 'oracle operator invitation';

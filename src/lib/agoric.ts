@@ -2,7 +2,7 @@ import { ACTIVE_AGORIC_RPC, AGORIC_NETWORK, MAX_OFFERS_TO_LOOP, QUERY_PARAMS_INT
 import { logger } from "../utils/logger";
 import WebSocket from 'ws';
 import { execSync } from 'child_process';
-import { makeVstorageKit, boardSlottingMarshaller } from '@agoric/client-utils';
+import { makeVstorageKit } from '@agoric/client-utils';
 import { AgoricSubmissionResponse, CctpTxSubmission, NetworkConfig, SubmissionStatus, TransactionStatus, VStorage } from "../types";
 import { BridgeAction } from '@agoric/smart-wallet/src/smartWallet.js'
 import {
@@ -14,6 +14,7 @@ import axios from "axios";
 import { setRpcBlockHeight, setWatcherLastOfferId } from "../metrics";
 import { getExpiredTransactionsWithInflightStatus, getLastOfferId, setLastOfferId, updateSubmissionStatus } from "./db";
 import { submitToAgoric } from "../submitter";
+import { MARSHALLER } from "../constants";
 
 // Holds the vstorage policy obtained from Agoric
 export let vStoragePolicy: VStorage = {
@@ -418,8 +419,7 @@ export const getOfferById = async (id: string) => {
  * @returns Serialized bridge action
  */
 export const outputAction = (bridgeAction: BridgeAction) => {
-    const marshaller = boardSlottingMarshaller();
-    return marshaller.serialize(harden(bridgeAction));
+    return MARSHALLER.serialize(harden(bridgeAction));
 };
 
 /**

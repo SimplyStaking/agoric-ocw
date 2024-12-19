@@ -1,13 +1,11 @@
 import '@endo/init/pre.js'; // needed only for the next line
 import '@endo/init/pre-remoting.js';
 import '@endo/init/unsafe-fast.js';
-import { makeVstorageKit, boardSlottingMarshaller } from '@agoric/client-utils';
+import { makeVstorageKit } from '@agoric/client-utils';
 import { ACTIVE_AGORIC_RPC, AGORIC_NETWORK } from '../src/config/config';
 import { BridgeAction, ExecuteOfferAction } from '@agoric/smart-wallet/src/smartWallet';
 import { OfferSpec } from '@agoric/smart-wallet/src/offers';
-
-const marshaller = boardSlottingMarshaller();
-export const INVITATION_MAKERS_DESC = 'oracle operator invitation';
+import { INVITATION_MAKERS_DESC, MARSHALLER } from '../src/constants';
 
 /**
  * TOutputs the action to be executed
@@ -15,7 +13,7 @@ export const INVITATION_MAKERS_DESC = 'oracle operator invitation';
  * @param {Pick<import('stream').Writable,'write'>} stdout
  */
 const outputAction = (bridgeAction: BridgeAction, stdout: any) => {
-    const capData = marshaller.toCapData(harden(bridgeAction));
+    const capData = MARSHALLER.toCapData(harden(bridgeAction));
     stdout.write(JSON.stringify(capData));
     stdout.write('\n');
 };
