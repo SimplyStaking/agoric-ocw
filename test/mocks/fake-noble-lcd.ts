@@ -2,6 +2,7 @@ import type { NobleAddress, QueryAccountError, QueryAccountResponse } from '../.
 import type {
   NobleLCD,
 } from '../../src/lib/noble-lcd.js';
+import { EXPECTED_NOBLE_CHANNEL_ID } from '../../src/constants.js';
 
 export const SCENARIOS: Record<string, NobleAddress> = {
   AGORIC_PLUS_ADDR: 'noble1x0ydg69dh6fqvr27xjvp6maqmrldam6yfelqkd',
@@ -32,7 +33,7 @@ export const makeFakeNobleLCD = () =>
                 account_number: '121',
                 sequence: '0',
               },
-              channel: 'channel-21',
+              channel: EXPECTED_NOBLE_CHANNEL_ID,
               recipient:
                 'agoric16kv2g7snfc4q24vg3pjdlnnqgngtjpwtetd2h689nz09lcklvh5s8u37ek+osmo183dejcnmkka5dzcu9xw6mywq0p2m5peks28men',
               created_at: '10599524',

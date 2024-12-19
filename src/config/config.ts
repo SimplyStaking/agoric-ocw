@@ -1,6 +1,7 @@
 import { config } from 'dotenv';
 import { AgoricAddress, ChainConfig } from '../types';
 import { logger } from '../utils/logger';
+import { PROD } from '../constants';
 
 // Load environment variables from .env file
 config();
@@ -173,7 +174,7 @@ if (isNaN(TX_TIMEOUT_BLOCKS)) {
 /**
  * Holds the environment
  */
-export const ENV = process.env.ENV || "prod"
+export const ENV = process.env.ENV || PROD
 
 /**
  * Holds the api secret to query txs
