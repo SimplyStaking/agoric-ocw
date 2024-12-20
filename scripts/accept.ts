@@ -2,7 +2,7 @@ import '@endo/init/pre.js'; // needed only for the next line
 import '@endo/init/pre-remoting.js';
 import '@endo/init/unsafe-fast.js';
 import { makeVstorageKit } from '@agoric/client-utils';
-import { ACTIVE_AGORIC_RPC, AGORIC_NETWORK } from '../src/config/config';
+import { ACTIVE_AGORIC_RPC_INDEX, AGORIC_NETWORK, AGORIC_RPCS } from '../src/config/config';
 import { BridgeAction, ExecuteOfferAction } from '@agoric/smart-wallet/src/smartWallet';
 import { OfferSpec } from '@agoric/smart-wallet/src/offers';
 import { INVITATION_MAKERS_DESC, MARSHALLER } from '../src/constants';
@@ -23,7 +23,7 @@ const outputAction = (bridgeAction: BridgeAction, stdout: any) => {
  */
 export const accept = async () => {
     const vsk = await makeVstorageKit({ fetch }, {
-        rpcAddrs: [ACTIVE_AGORIC_RPC], network: AGORIC_NETWORK
+        rpcAddrs: [AGORIC_RPCS[ACTIVE_AGORIC_RPC_INDEX]], network: AGORIC_NETWORK
     });
     const instance = vsk.agoricNames.instance.fastUsdc;
     assert(instance, 'fastUsdc instance not in agoricNames');

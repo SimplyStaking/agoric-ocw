@@ -112,7 +112,12 @@ export const EVENT_ABI = [
  * A list of agoric RPCs, comma seperated
  */
 export const AGORIC_RPCS = process.env.AGORIC_RPCS?.split(",") || ['https://agoric-rpc.polkachu.com'];
-export let ACTIVE_AGORIC_RPC = AGORIC_RPCS[0]
+export const AGORIC_WS_RPCS = process.env.AGORIC_WS_RPCS?.split(",") || ['https://agoric-rpc.polkachu.com/websockets'];
+if (AGORIC_RPCS.length != AGORIC_WS_RPCS.length) {
+  logger.error(`You must have an Agoric WS endpoint for every non-WS endpoint`)
+  process.exit(1)
+}
+export let ACTIVE_AGORIC_RPC_INDEX = 0
 
 /**
  * The agoric chain id
@@ -128,14 +133,12 @@ export const AGORIC_RPC_CHECK_INTERVAL = process.env.AGORIC_RPC_CHECK_INTERVAL |
  * Function to switch to the next Agoric RPC
  */
 export function nextActiveAgoricRPC() {
-  // Check length and current
-  let currentIndex = AGORIC_RPCS.indexOf(ACTIVE_AGORIC_RPC)
   // If there are more
-  if (currentIndex != AGORIC_RPCS.length) {
-    ACTIVE_AGORIC_RPC = AGORIC_RPCS[currentIndex + 1]
+  if (ACTIVE_AGORIC_RPC_INDEX != AGORIC_RPCS.length) {
+    ACTIVE_AGORIC_RPC_INDEX++
   }
   else {
-    ACTIVE_AGORIC_RPC = AGORIC_RPCS[0]
+    ACTIVE_AGORIC_RPC_INDEX = 0
   }
 }
 

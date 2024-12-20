@@ -1,4 +1,4 @@
-import { ACTIVE_AGORIC_RPC, AGORIC_NETWORK, MAX_OFFERS_TO_LOOP, QUERY_PARAMS_INTERVAL, RPC_RECONNECT_DELAY, WATCHER_WALLET_ADDRESS, nextActiveAgoricRPC } from "../config/config";
+import { ACTIVE_AGORIC_RPC_INDEX, AGORIC_NETWORK, AGORIC_RPCS, AGORIC_WS_RPCS, MAX_OFFERS_TO_LOOP, QUERY_PARAMS_INTERVAL, RPC_RECONNECT_DELAY, WATCHER_WALLET_ADDRESS, nextActiveAgoricRPC } from "../config/config";
 import { logger } from "../utils/logger";
 import WebSocket from 'ws';
 import { execSync } from 'child_process';
@@ -43,8 +43,7 @@ const emptyCurrentRecord = {
  * Creates a websocket to be used for the websocket provider for Agoric
  */
 export function createAgoricWebSocket() {
-    let url = ACTIVE_AGORIC_RPC.replace("https", "ws")
-    url = ACTIVE_AGORIC_RPC + "/websocket"
+    let url = AGORIC_WS_RPCS[ACTIVE_AGORIC_RPC_INDEX]
     agoricWsProvider = new WebSocket(url);
 
     agoricWsProvider.on("open", () => {
@@ -110,7 +109,7 @@ export function createAgoricWebSocket() {
  * @returns {NetworkConfig} the current network config
  */
 export const getNetworkConfig = (): NetworkConfig => {
-    return { rpcAddrs: [ACTIVE_AGORIC_RPC], chainName: AGORIC_NETWORK }
+    return { rpcAddrs: [AGORIC_RPCS[ACTIVE_AGORIC_RPC_INDEX]], chainName: AGORIC_NETWORK }
 }
 
 /**
@@ -133,7 +132,7 @@ export const execSwingsetTransaction = (
     const backendOpt = keyring?.backend
         ? `--keyring-backend=${keyring.backend}`
         : '';
-    const cmd = `agd --node=${ACTIVE_AGORIC_RPC} --chain-id=${AGORIC_NETWORK} ${homeOpt} ${backendOpt} --from=${from} tx swingset ${swingsetArgs} --output=json --yes`;
+    const cmd = `agd --node=${AGORIC_RPCS[ACTIVE_AGORIC_RPC_INDEX]} --chain-id=${AGORIC_NETWORK} ${homeOpt} ${backendOpt} --from=${from} tx swingset ${swingsetArgs} --output=json --yes`;
     logger.debug('Executing ', cmd);
     let response = JSON.parse(execSync(cmd).toString());
     return {
@@ -429,7 +428,7 @@ export const outputAction = (bridgeAction: BridgeAction) => {
 export const getLatestBlockHeight = async () => {
     try {
         // Construct the URL
-        const apiUrl = `${ACTIVE_AGORIC_RPC}/status`;
+        const apiUrl = `${AGORIC_RPCS[ACTIVE_AGORIC_RPC_INDEX]}/status`;
 
         // Make the GET request
         const response = await axios.get(apiUrl);

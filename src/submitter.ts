@@ -1,5 +1,5 @@
 import { OfferSpec } from "@agoric/smart-wallet/src/offers";
-import { ACTIVE_AGORIC_RPC, AGORIC_RPC_CHECK_INTERVAL, TX_TIMEOUT_BLOCKS, WATCHER_WALLET_ADDRESS, nextActiveAgoricRPC } from "./config/config";
+import { ACTIVE_AGORIC_RPC_INDEX, AGORIC_RPCS, AGORIC_RPC_CHECK_INTERVAL, TX_TIMEOUT_BLOCKS, WATCHER_WALLET_ADDRESS, nextActiveAgoricRPC } from "./config/config";
 import { execSwingsetTransaction, getLatestBlockHeight, outputAction, watcherInvitation } from "./lib/agoric";
 import { addSubmission, getSubmission, updateSubmissionStatus } from "./lib/db";
 import { setAgoricActiveRpc } from "./metrics";
@@ -102,7 +102,7 @@ export async function monitorAgoric() {
         // Get status
         let status = await getLatestBlockHeight()
         // Get current active rpc
-        let currentActive = ACTIVE_AGORIC_RPC
+        let currentActive = AGORIC_RPCS[ACTIVE_AGORIC_RPC_INDEX]
         if (!status || status.syncing) {
             setAgoricActiveRpc(currentActive, false)
             // Get the next
