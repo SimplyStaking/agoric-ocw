@@ -55,6 +55,11 @@ export const NOBLE_LCD_URL = process.env.NOBLE_LCD_URL || 'https://noble-api.pol
 export const NOBLE_RPC_URL = process.env.NOBLE_RPC_URL || 'https://noble-rpc.polkachu.com';
 
 /**
+ * Holds the Noble RPC WS URL (Port 26657)
+ */
+export const NOBLE_RPC_WS_URL = process.env.NOBLE_RPC_WS_URL || 'https://noble-rpc.polkachu.com/websocket';
+
+/**
  * Holds the Postgres URL to connect to
  */
 export const DB_URL = process.env.DB_URL
