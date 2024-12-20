@@ -21,7 +21,7 @@ const checkApiKey: RequestHandler = (req, res, next) => {
 
 apiRouter.get('/txs', checkApiKey, async (req: Request, res: Response) => {
     let since = req.query.since as string
-    if (isNaN(Number(since))) {
+    if (validateSince(since)) {
         res.status(400).json({
             success: false,
             message: "Since parameter must be a number"
@@ -34,7 +34,7 @@ apiRouter.get('/txs', checkApiKey, async (req: Request, res: Response) => {
 
 apiRouter.get('/reorgedTxs', checkApiKey, async (req: Request, res: Response) => {
     let since = req.query.since as string
-    if (isNaN(Number(since))) {
+    if (validateSince(since)) {
         res.status(400).json({
             success: false,
             message: "Since parameter must be a number"
