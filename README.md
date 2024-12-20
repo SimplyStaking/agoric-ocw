@@ -41,6 +41,7 @@ This solution listens to CCTP transactions from other chains, and if the mint re
     - If the FA resolves to a non-Agoric address, the TX is removed from the DB
     - If the FA resolves to an Agoric address, it is processed normally and submitted to Agoric as evidence
 
+10. There is an edge case where a WS Provider can skip some blocks. For example, it provides block 101 before block 100, or it skips block 100. For this reason, we added a check to ensure that the new fetched block is the next in line from what we have in DB's state. If not, we perform a backfill on the skipped blocks
 
 ### Testing Environment
 
@@ -103,3 +104,38 @@ forge script foundry/script/CCTPTransfer.s.sol \
 
 References:
 - https://github.com/agoric-labs/fast-usdc-offchain-watcher
+
+### How to run
+
+Running the OCW involves the following steps
+
+1. Install agoric and agd
+```
+git clone https://github.com/Agoric/agoric-sdk.git
+cd agoric-sdk
+yarn install
+yarn build
+yarn link-cli ~/bin/agoric
+cd packages/cosmic-swingset && make
+echo "export PATH=$PATH:$HOME/bin" >> ~/.profile
+source ~/.profile
+agoric --version
+agd version
+```
+
+2. Accept the oracle invitation by running the following
+```
+~/bin/agoric wallet send --offer acceptWatcher.json --from <YOUR_WALLET_ADDRESS>  --keyring-backend="test" --home="./binaries"
+```
+
+3. Copy the .env file
+```
+cp .env.sample .env
+```
+
+4. Change the RPCs for the EVM chains, Agoric and Noble in .env
+5. Change the watcher address to your wallet address in .env
+6. Run the containers
+```
+docker compose up -d
+```
