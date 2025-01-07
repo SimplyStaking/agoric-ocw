@@ -109,7 +109,26 @@ References:
 
 Running the OCW involves the following steps
 
-1. Install agoric and agd
+1. Verify the image
+```
+docker-compose up verifier 
+```
+
+It should return this output (Make sure the image is verified)
+```
+Attaching to verifier-1
+verifier-1  | 
+verifier-1  | Verification for index.docker.io/simplystaking/agoric-fast-usdc-ocw:vX.X.X --
+verifier-1  | The following checks were performed on each of these signatures:
+verifier-1  |   - The cosign claims were validated
+verifier-1  |   - Existence of the claims in the transparency log was verified offline
+verifier-1  |   - The signatures were verified against the specified public key
+verifier-1  | 
+verifier-1  | [{"critical":{"identity":{"docker-reference":"index.docker.io/simplystaking/agoric-fast-usdc-ocw"},"image":{"docker-manifest-digest":"sha256:424bfd4e1b9739342baae69ededd18b032525ae71fd14f98c5a157766eb67aa1"},"type":"cosign container image signature"},"optional":{"Bundle":{"SignedEntryTimestamp":"MEUCIDzSujewL7Ukos+GHt/NRbbb4yk7gHL/TaB4DHW4QBl7AiEA24yHf1N3igHc6/srKEOjDcjPR7CMGK19PyUP2rEVAcI=","Payload":{"body":"eyJhcGlWZXJzaW9uIjoiMC4wLjEiLCJraW5kIjoiaGFzaGVkcmVrb3JkIiwic3BlYyI6eyJkYXRhIjp7Imhhc2giOnsiYWxnb3JpdGhtIjoic2hhMjU2IiwidmFsdWUiOiJjNGY2NjNhYzQ3ZDcwMzU2NzJlYjIxOTZiNWM4OTlmYzUyM2FlYjM1MzZjNjQ4Y2VlZjljMzgyMjE3OWEwN2VhIn19LCJzaWduYXR1cmUiOnsiY29udGVudCI6Ik1FUUNJQnA0cG9VMjFEVjFjYWZuK3N2SjZHTnppRExrdit6ank2Y3psd1VLa3lTOEFpQkcrNEpiMlYxckdHazVxWVJEa1FlUEFaV2FVVXVzMmdJMWtxRmhBOEhFaGc9PSIsInB1YmxpY0tleSI6eyJjb250ZW50IjoiTFMwdExTMUNSVWRKVGlCUVZVSk1TVU1nUzBWWkxTMHRMUzBLVFVacmQwVjNXVWhMYjFwSmVtb3dRMEZSV1VsTGIxcEplbW93UkVGUlkwUlJaMEZGUldoNlQzRXZTVk0zYW1FNVNGa3pWVVZ5ZVhKTFoxZHBXRTVsV1FwNFpESkhSVE1yTTB0NGMyUjFaR0pxUTA1M1J6TTNUMWRKY25Vck1ERXhZMDU1YTJ3MlVsWldhRTF3YzJkc2FTdFVUVU5GY0hBeFVXOW5QVDBLTFMwdExTMUZUa1FnVUZWQ1RFbERJRXRGV1MwdExTMHRDZz09In19fX0=","integratedTime":1734459845,"logIndex":156088209,"logID":"c0d23d6ad406973f9559f3ba2d1ca01f84147d8ffc5b8445c224f98b9591801d"}}}}]
+verifier-1 exited with code 0
+```
+
+3. Install agoric and agd
 ```
 git clone https://github.com/Agoric/agoric-sdk.git
 cd agoric-sdk
@@ -123,21 +142,21 @@ agoric --version
 agd version
 ```
 
-2. Copy the .env file
+3. Copy the .env file
 ```
 cp .env.sample .env
 ```
 
-3. Change the RPCs for the EVM chains, Agoric and Noble in .env
-4. Change the watcher address to your wallet address in .env
+4. Change the RPCs for the EVM chains, Agoric and Noble in .env
+5. Change the watcher address to your wallet address in .env
 
-5. Accept the oracle invitation by running the following
+6. Accept the oracle invitation by running the following
 ```
 node_modules/.bin/tsx ./scripts/accept.ts > acceptWatcher.json
 ~/bin/agoric wallet send --offer acceptWatcher.json --from <YOUR_WALLET_ADDRESS>  --keyring-backend="test" --home="./binaries"
 ```
 
-6. Run the containers
+7. Run the containers
 ```
 docker compose up -d
 ```
