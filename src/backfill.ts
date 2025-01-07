@@ -3,7 +3,7 @@ import { EVENT_ABI, getChainFromConfig } from "./config/config";
 import { ChainConfig, DepositForBurnEvent } from "./types";
 import { getWsProvider } from "./lib/evm-client";
 import { logger } from "./utils/logger";
-import { getAllHeights } from "./lib/db";
+import { getAllHeights, setHeightForChain } from "./lib/db";
 import { Hex } from "viem";
 import { processCCTPBurnEventLog } from "./processor";
 import { setRpcAlive } from "./metrics";
@@ -16,7 +16,7 @@ import { vStoragePolicy } from "./lib/agoric";
  */
 export async function backfillChain(
   chain: ChainConfig,
-  fromBlock: number
+  fromBlock: number,
 ) {
 
   let wsProvider = getWsProvider(chain)
@@ -26,9 +26,11 @@ export async function backfillChain(
 
   // Get logs for the 'DepositForBurn' event from the specified block onwards
   try {
+    let latestBlockNumber = await wsProvider.getBlockNumber();
+
     const logs = await wsProvider.getLogs({
       fromBlock, // Starting block number
-      toBlock: "latest", // You can specify a `toBlock` number if needed
+      toBlock: latestBlockNumber, // You can specify a `toBlock` number if needed
       address: chain.contractAddress, // Filter by contract address
       topics: [
         ethers.id("DepositForBurn(uint64,address,uint256,address,bytes32,uint32,bytes32,bytes32)") // This is the event signature hash
@@ -78,6 +80,9 @@ export async function backfillChain(
         logger.error(`Error processing backfilled logs from ${chain.name}: ${err}`);
       }
     }
+    // Store height in DB after backfill if a log is found
+    await setHeightForChain(chain.name, latestBlockNumber);
+
   } catch (err) {
     logger.error(`Error fetching backfilled logs from ${chain.name}: ${err}`);
   }

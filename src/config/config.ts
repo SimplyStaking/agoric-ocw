@@ -1,6 +1,7 @@
 import { config } from 'dotenv';
 import { AgoricAddress, ChainConfig } from '../types';
 import { logger } from '../utils/logger';
+import { PROD } from '../constants';
 
 // Load environment variables from .env file
 config();
@@ -11,7 +12,7 @@ config();
 export const chainConfig = [
   {
     name: "Ethereum",
-    rpcUrl: process.env.MAINNET_RPC_URL || '',
+    rpcUrl: process.env.ETHEREUM_MAINNET_RPC_URL || '',
     contractAddress: "0xBd3fa81B58Ba92a82136038B25aDec7066af3155",
   },
   {
@@ -52,6 +53,11 @@ export const NOBLE_LCD_URL = process.env.NOBLE_LCD_URL || 'https://noble-api.pol
  * Holds the Noble RPC URL (Port 26657)
  */
 export const NOBLE_RPC_URL = process.env.NOBLE_RPC_URL || 'https://noble-rpc.polkachu.com';
+
+/**
+ * Holds the Noble RPC WS URL (Port 26657)
+ */
+export const NOBLE_RPC_WS_URL = process.env.NOBLE_RPC_WS_URL || 'https://noble-rpc.polkachu.com/websocket';
 
 /**
  * Holds the Postgres URL to connect to
@@ -106,7 +112,12 @@ export const EVENT_ABI = [
  * A list of agoric RPCs, comma seperated
  */
 export const AGORIC_RPCS = process.env.AGORIC_RPCS?.split(",") || ['https://agoric-rpc.polkachu.com'];
-export let ACTIVE_AGORIC_RPC = AGORIC_RPCS[0]
+export const AGORIC_WS_RPCS = process.env.AGORIC_WS_RPCS?.split(",") || ['https://agoric-rpc.polkachu.com/websockets'];
+if (AGORIC_RPCS.length != AGORIC_WS_RPCS.length) {
+  logger.error(`You must have an Agoric WS endpoint for every non-WS endpoint`)
+  process.exit(1)
+}
+export let ACTIVE_AGORIC_RPC_INDEX = 0
 
 /**
  * The agoric chain id
@@ -122,14 +133,12 @@ export const AGORIC_RPC_CHECK_INTERVAL = process.env.AGORIC_RPC_CHECK_INTERVAL |
  * Function to switch to the next Agoric RPC
  */
 export function nextActiveAgoricRPC() {
-  // Check length and current
-  let currentIndex = AGORIC_RPCS.indexOf(ACTIVE_AGORIC_RPC)
   // If there are more
-  if (currentIndex != AGORIC_RPCS.length) {
-    ACTIVE_AGORIC_RPC = AGORIC_RPCS[currentIndex + 1]
+  if (ACTIVE_AGORIC_RPC_INDEX != AGORIC_RPCS.length) {
+    ACTIVE_AGORIC_RPC_INDEX++
   }
   else {
-    ACTIVE_AGORIC_RPC = AGORIC_RPCS[0]
+    ACTIVE_AGORIC_RPC_INDEX = 0
   }
 }
 
@@ -173,7 +182,7 @@ if (isNaN(TX_TIMEOUT_BLOCKS)) {
 /**
  * Holds the environment
  */
-export const ENV = process.env.ENV || "prod"
+export const ENV = process.env.ENV || PROD
 
 /**
  * Holds the api secret to query txs

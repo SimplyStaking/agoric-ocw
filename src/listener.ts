@@ -10,6 +10,7 @@ import { getWsProvider } from './lib/evm-client';
 import { vStoragePolicy } from './lib/agoric';
 import { getAllHeights, getTransactionsToBeSentForChain, setHeightForChain } from './lib/db';
 import { backfillChain } from './backfill';
+import { PROD } from './constants';
 
 /**
  * Listens for `DepositForBurn` events and new blocks, and handles reconnections on error.
@@ -60,6 +61,7 @@ export function listen(chain: ChainConfig) {
     let currentHeights = await getAllHeights()
     let currentHeight = currentHeights ? currentHeights[chain.name] : 0;
 
+    // Only perform backfill if the WS subsription skips a hieght
     if (blockNumber > currentHeight + 1) {
       logger.info(`Backfilling for ${chain.name} from ${currentHeight + 1}. This happened because there were missed blocks from WS before block ${blockNumber}.`)
       let chainConfig = await getChainFromConfig(chain.name)
@@ -67,6 +69,7 @@ export function listen(chain: ChainConfig) {
     }
 
     let transactions = await getTransactionsToBeSentForChain(chain.name, blockNumber)
+    
     // For each transaction to be submitted, submit
     for (let transaction of transactions) {
       let evidence = {
@@ -100,7 +103,7 @@ export async function startMultiChainListener() {
   for (let chain in vStoragePolicy.chainPolicies) {
     let chainDetails = getChainFromConfig(chain)
     if (chainDetails) {
-      chainDetails.contractAddress = ENV == "prod" ? vStoragePolicy.chainPolicies[chain].cctpTokenMessengerAddress : chainDetails.contractAddress
+      chainDetails.contractAddress = ENV == PROD ? vStoragePolicy.chainPolicies[chain].cctpTokenMessengerAddress : chainDetails.contractAddress
       listen(chainDetails)
     }
     else {

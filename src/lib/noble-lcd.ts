@@ -1,5 +1,5 @@
-import { ENV, MINUTES_HOLDING_UNKNOWN_FA, NOBLE_LCD_URL, NOBLE_RPC_URL, RPC_RECONNECT_DELAY } from '../config/config';
-import { UNKNOWN_FA } from '../constants';
+import { ENV, MINUTES_HOLDING_UNKNOWN_FA, NOBLE_LCD_URL, NOBLE_RPC_URL, NOBLE_RPC_WS_URL, RPC_RECONNECT_DELAY } from '../config/config';
+import { EXPECTED_NOBLE_CHANNEL_ID, PROD, TESTING_NOBLE_FA, TESTING_NOBLE_FA_ADDR, UNKNOWN_FA } from '../constants';
 import { incrementEventsCount, incrementTotalAmount, setRpcBlockHeight } from '../metrics';
 import type { ForwardingAccount, NobleAddress, QueryAccountError, QueryAccountResponse } from '../types';
 import { logger } from '../utils/logger';
@@ -25,21 +25,9 @@ export const makeNobleLCD = ({
   queryAccount: async (
     address: NobleAddress,
   ): Promise<QueryAccountResponse | QueryAccountError> => {
-    if (address == "noble1x0ydg69dh6fqvr27xjvp6maqmrldam6yfelqkd" && ENV != "prod") {
+    if (address == TESTING_NOBLE_FA_ADDR && ENV != PROD) {
       return {
-        account: {
-          '@type': '/noble.forwarding.v1.ForwardingAccount',
-          base_account: {
-            account_number: '121',
-            address: 'noble1x0ydg69dh6fqvr27xjvp6maqmrldam6yfelqkd',
-            pub_key: null,
-            sequence: '0',
-          },
-          channel: 'channel-21',
-          created_at: '10599524',
-          recipient:
-            'agoric16kv2g7snfc4q24vg3pjdlnnqgngtjpwtetd2h689nz09lcklvh5s8u37ek+osmo183dejcnmkka5dzcu9xw6mywq0p2m5peks28men',
-        }
+        account: TESTING_NOBLE_FA
       }
     }
     try {
@@ -106,7 +94,7 @@ export const getForwardingAccount =
         return null;
       }
 
-      let expectedChannelId = ENV == "prod" ? vStoragePolicy.nobleAgoricChannelId : "channel-21"
+      let expectedChannelId = ENV == PROD ? vStoragePolicy.nobleAgoricChannelId : EXPECTED_NOBLE_CHANNEL_ID
       // we are only interested in agoric plus address accounts
       if (
         (!accountDetails.recipient.startsWith('agoric') &&
@@ -168,12 +156,10 @@ export const getNobleLCDClient = (): NobleLCD => {
  * Creates a websocket to be used for the websocket provider for Noble
  */
 export function createNobleWebSocket() {
-  let url = NOBLE_RPC_URL.replace("http", "ws")
-  url = NOBLE_RPC_URL + "/websocket"
-  nobleWsProvider = new WebSocket(url);
+  nobleWsProvider = new WebSocket(NOBLE_RPC_WS_URL);
 
   nobleWsProvider.on("open", () => {
-    logger.debug(`Connected to Noble on ${url}`);
+    logger.debug(`Connected to Noble on ${NOBLE_RPC_WS_URL}`);
     nobleWsProvider.send(` { "jsonrpc": "2.0", "method": "subscribe", "id": 0, "params": { "query": "tm.event='NewBlock'" } }`)
   });
 

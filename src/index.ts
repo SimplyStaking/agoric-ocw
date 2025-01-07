@@ -12,9 +12,9 @@ import { WATCHER_WALLET_ADDRESS } from './config/config';
 import { setLastOfferId } from './lib/db';
 import apiRouter from './api';
 import { createNobleWebSocket } from './lib/noble-lcd';
+import { PORT } from './constants';
 
 const app = express();
-const PORT = 3011;
 
 // Endpoint to expose Prometheus metrics
 app.get('/metrics', async (req, res) => {

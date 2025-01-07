@@ -1,5 +1,6 @@
 require('dotenv').config({ path: '.env.test' });
 
+import { EXPECTED_NOBLE_CHANNEL_ID } from "../../src/constants";
 import { processCCTPBurnEventLog } from "../../src/processor";
 import { TransactionStatus } from "../../src/types";
 import { DEPOSIT_FOR_BURN_EVENTS } from "../fixtures/deposit-for-burn-events";
@@ -115,7 +116,7 @@ describe('processor Tests', () => {
       chainId: 1,
       blockTimestamp: 10000000n,
       forwardingAddress: SCENARIOS.AGORIC_PLUS_ADDR,
-      forwardingChannel: 'channel-21',
+      forwardingChannel: EXPECTED_NOBLE_CHANNEL_ID,
       recipientAddress:
         'agoric16kv2g7snfc4q24vg3pjdlnnqgngtjpwtetd2h689nz09lcklvh5s8u37ek+osmo183dejcnmkka5dzcu9xw6mywq0p2m5peks28men',
       txHash:
