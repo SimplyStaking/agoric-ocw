@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import { DB_URL } from '../config/config';  // Import your DB connection URL from config
-import { SubmissionStatus, TransactionStatus } from '../types';
+import { ForwardingAccount, SubmissionStatus, TransactionStatus } from '../types';
 import { logger } from '../utils/logger';
 import { vStoragePolicy } from './agoric';
 import { UNKNOWN_FA } from '../constants';
@@ -57,6 +57,12 @@ interface IRemovedTX extends Document {
     transactionHash: string;
     chain: string;
     created: Number;
+}
+
+interface INobleAccount {
+    nobleAddress: string;
+    account?: ForwardingAccount,
+    isAgoricForwardingAcct: boolean;
 }
 
 export interface GaugesState {
@@ -132,10 +138,38 @@ const stateSchema: Schema = new Schema({
     updatedAt: { type: Date, default: Date.now },
 });
 
+const baseAccountSchema = new Schema({
+    address: { type: String, required: true },
+    pub_key: {
+        type: {
+            '@type': { type: String, required: true },
+            key: { type: String, required: true },
+        },
+        required: false,
+    },
+    account_number: { type: String, required: true },
+    sequence: { type: String, required: true },
+});
+
+const forwardingAccountSchema = new Schema<ForwardingAccount>({
+    base_account: { type: baseAccountSchema, required: true },
+    channel: { type: String, required: true },
+    recipient: { type: String, required: true },
+    created_at: { type: String, required: true },
+});
+
+const nobleAccountSchema = new Schema<INobleAccount>({
+    nobleAddress: { type: String, required: true, unique: true },
+    account: { type: forwardingAccountSchema },
+    isAgoricForwardingAcct: { type: Boolean, required: true },
+});
+
+
 export const Transaction = mongoose.model<ITransaction>('Transaction', transactionSchema);
 export const Submission = mongoose.model<ISubmission>('Submission', submissionSchema);
 export const RemovedTX = mongoose.model<IRemovedTX>('RemovedTX', removedTXSchema);
 const State = mongoose.model<IState>('State', stateSchema);
+const NobleAccount = mongoose.model<INobleAccount>('NobleAccount', nobleAccountSchema);
 
 /**
  * Adds a new transaction to the database.
@@ -477,6 +511,27 @@ export const getExpiredTransactionsWithInflightStatus = async (maxTimeoutHeight:
     ]);
 
     return transactions;
+};
+
+/**
+ * Adds a new noble account to the database.
+ * @param {INobleAccount} data - Noble account details to add.
+ * @returns {Promise<INobleAccount>} - The newly created noble account.
+ */
+export const addNobleAccount = async (data: INobleAccount): Promise<INobleAccount> => {
+    const nobleAccount = new NobleAccount(data);
+    return await nobleAccount.save();
+};
+
+/**
+ * Function to get noble account
+ * @param {string} nobleAddress - The noble address to search for.
+ * @returns {Promise<INobleAccount | null>} - The existing noble account or null.
+ */
+export const getNobleAccount = async (
+    nobleAddress: string,
+): Promise<INobleAccount | null> => {
+    return await NobleAccount.findOne({ nobleAddress });
 };
 
 // Initialize DB connection on app start
