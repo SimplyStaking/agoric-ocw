@@ -128,7 +128,7 @@ verifier-1  | [{"critical":{"identity":{"docker-reference":"index.docker.io/simp
 verifier-1 exited with code 0
 ```
 
-3. Install agoric and agd
+2. Install agoric and agd
 ```
 git clone https://github.com/Agoric/agoric-sdk.git
 cd agoric-sdk
