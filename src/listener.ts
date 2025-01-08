@@ -7,7 +7,7 @@ import { ENV, EVENT_ABI, getChainFromConfig } from "./config/config";
 import { ChainConfig, DepositForBurnEvent, Hex, TransactionStatus } from './types';
 import { ContractEventPayload } from 'ethers';
 import { getWsProvider } from './lib/evm-client';
-import { vStoragePolicy } from './lib/agoric';
+import { getLatestBlockHeight, vStoragePolicy } from './lib/agoric';
 import { getAllHeights, getTransactionsToBeSentForChain, setHeightForChain } from './lib/db';
 import { backfillChain } from './backfill';
 import { PROD } from './constants';
@@ -70,6 +70,16 @@ export function listen(chain: ChainConfig) {
 
     let transactions = await getTransactionsToBeSentForChain(chain.name, blockNumber)
 
+    // At this point, backfilling is complete and transactions are added to the DB
+    // We can set the height here before the submissions just in case submissions is slow to avoid backfilling again if a new block comes in before submissions are finished
+    setRpcAlive(name, true);
+    setRpcBlockHeight(name, blockNumber)
+
+    // Set height in DB
+    await setHeightForChain(chain.name, blockNumber);
+
+    let agoricRPCStatus = await getLatestBlockHeight()
+
     // For each transaction to be submitted, submit
     for (let transaction of transactions) {
       let evidence = {
@@ -84,14 +94,8 @@ export function listen(chain: ChainConfig) {
         chainId: vStoragePolicy.chainPolicies[transaction.chain].chainId,
         blockTimestamp: transaction.blockTimestamp
       }
-      await submitToAgoric(evidence, transaction.risksIdentified)
+      submitToAgoric(evidence, transaction.risksIdentified, agoricRPCStatus)
     }
-
-    setRpcAlive(name, true);
-    setRpcBlockHeight(name, blockNumber)
-
-    // Set height in DB
-    await setHeightForChain(chain.name, blockNumber);
   });
 
 }

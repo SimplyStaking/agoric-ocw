@@ -3,16 +3,17 @@ import { ACTIVE_AGORIC_RPC_INDEX, AGORIC_RPCS, AGORIC_RPC_CHECK_INTERVAL, TX_TIM
 import { execSwingsetTransaction, getLatestBlockHeight, outputAction, watcherInvitation } from "./lib/agoric";
 import { addSubmission, getSubmission, updateSubmissionStatus } from "./lib/db";
 import { setAgoricActiveRpc } from "./metrics";
-import { AgoricOCWOfferTemplate, AgoricSubmissionResponse, CCTPTxEvidence, SubmissionStatus, TransactionStatus } from "./types";
+import { AgoricOCWOfferTemplate, AgoricRPCStatus, AgoricSubmissionResponse, CCTPTxEvidence, SubmissionStatus, TransactionStatus } from "./types";
 import { logger } from "./utils/logger";
 
 /**
+ * Submits evidence to Agoric
  * @param evidence evidence to submit
+ * @param risksIdentified an array of risks identified
+ * @param agoricRpcStatus the Agoric RPC status
  */
-export async function submitToAgoric(evidence: CCTPTxEvidence, risksIdentified: string[]) {
+export async function submitToAgoric(evidence: CCTPTxEvidence, risksIdentified: string[], agoricRpcStatus: AgoricRPCStatus) {
 
-    // Get latest Agoric block
-    let agoricRpcStatus = await getLatestBlockHeight()
     // Check if already submitted
     let submission = await getSubmission(evidence.txHash, evidence.status == TransactionStatus.REORGED)
     if (submission && submission.submissionStatus != SubmissionStatus.CANCELLED && agoricRpcStatus.height < submission.timeoutHeight) {

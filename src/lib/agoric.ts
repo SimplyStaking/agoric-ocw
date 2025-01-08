@@ -69,7 +69,7 @@ export function createAgoricWebSocket() {
 
             // Check for offers to be resubmitted
             let expiredTransactions = await getExpiredTransactionsWithInflightStatus(newHeight)
-
+            let agoricRPCStatus = await getLatestBlockHeight()
             // Loop though these and resubmit
             for (let transaction of expiredTransactions) {
                 let evidence = {
@@ -84,7 +84,7 @@ export function createAgoricWebSocket() {
                     chainId: transaction.chainId,
                     blockTimestamp: transaction.blockTimestamp
                 }
-                await submitToAgoric(evidence, transaction.risksIdentified)
+                submitToAgoric(evidence, transaction.risksIdentified, agoricRPCStatus)
             }
 
             logger.debug(`New block from agoric: ${newHeight}`);
@@ -229,9 +229,12 @@ export const queryParams = async () => {
         const { value } = JSON.parse(capDataStr);
         const specimen = JSON.parse(value);
         const { values } = specimen;
-        const capDatas = values.map((s: any) => JSON.parse(s));
+        const chainPolicyCapDataStr = values.map((s: any) => JSON.parse(s));
+        capDataStr = await vstorage.readLatest("published.fastUsdc")
+        const settlementAddressCapDataStr = JSON.parse(JSON.parse(capDataStr).value).values.map((s: any) => JSON.parse(s))
         return {
-            chainPolicy: capDatas.at(-1) as VStorage
+            chainPolicy: chainPolicyCapDataStr.at(-1) as VStorage,
+            settlementAccount: settlementAddressCapDataStr.at(-1).settlementAccount
         }
     } catch (err) {
         logger.error(`Failed to parse CapData for queryParams: ${err}`);
@@ -246,6 +249,7 @@ export const setParams = async () => {
     let params = await queryParams();
     if (params) {
         vStoragePolicy = params.chainPolicy;
+        settlementAccount = params.settlementAccount
     }
     else {
         logger.error(`Failed to query parameters`)
