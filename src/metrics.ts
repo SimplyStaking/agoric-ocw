@@ -69,6 +69,15 @@ const lastOfferSubmitted = new Gauge({
 });
 
 /**
+ * Gauge metric to track the cumulated current block range tx amount
+ */
+const currentBlockRangeAmount = new Gauge({
+    name: 'current_block_range_amount',
+    help: 'Shows the sum of the current block range tx amounts',
+    labelNames: ['network'],
+});
+
+/**
  * Sets the rpcAlive metric for a specific network.
  * @param network - The name of the network.
  * @param isAlive - Boolean value indicating if the RPC is alive (true) or dead (false).
@@ -206,6 +215,34 @@ export const setAgoricActiveRpc = (endpoint: string, isActive: boolean): void =>
  */
 export const setWatcherLastOfferId = (watcher: string, offerId: number): void => {
     lastOfferSubmitted.set({ watcher }, offerId);
+};
+
+/**
+ * Sets the current block range summation for a network
+ * @param network - The name of the network.
+ * @param amount - The amount to set the total to.
+ */
+export const setCurrentBlockRangeAmount = async (network: string, amount: number) => {
+    currentBlockRangeAmount.set({ network }, amount);
+};
+
+/**
+ * Gets the current block range amount for a network
+ * @param network - The name of the network.
+ * @returns the current block range amount for the given network
+ */
+export const getCurrentBlockRangeAmount = async (network: string) => {
+    let currentBlockRangeAmounts = await currentBlockRangeAmount.get()
+    let currentBlockRangeValues = currentBlockRangeAmounts.values;
+
+    for (let value in currentBlockRangeValues) {
+        let label = String(currentBlockRangeValues[value].labels.network)
+        if (label == network) {
+            return Number(currentBlockRangeValues[value].value)
+        }
+    }
+
+    return 0;
 };
 
 // Exports the 'register' object for exposing metrics in index.js or other modules

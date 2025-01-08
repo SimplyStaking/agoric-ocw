@@ -7,6 +7,7 @@ import { logger } from '../utils/logger';
 import { vStoragePolicy } from './agoric';
 import { addNobleAccount, getNobleAccount, getUnknownFATransactionsSince, removeTransaction, updateTransactionRecipientandChannel } from './db';
 import WebSocket from 'ws';
+import { decodeAddressHook } from '@agoric/cosmic-proto/address-hooks.js';
 
 // Holds the Noble WS Provider
 export let nobleWsProvider: WebSocket;
@@ -105,6 +106,27 @@ export const getForwardingAccount =
         })
         return null;
       }
+
+      // Check foe EUD parameter
+      try {
+        const { EUD } = decodeAddressHook(accountDetails.recipient).query;
+        if (!EUD) {
+          logger.debug(`No EUD parameter for agoric address ${accountDetails.recipient}`);
+          await addNobleAccount({
+            nobleAddress: address,
+            isAgoricForwardingAcct: false
+          })
+          return null;
+        }
+      } catch (e) {
+        logger.debug(`Could not decode address hook for agoric address ${accountDetails.recipient}`);
+        await addNobleAccount({
+          nobleAddress: address,
+          isAgoricForwardingAcct: false
+        })
+        return null;
+      }
+
       await addNobleAccount({
         nobleAddress: address,
         account: accountDetails,

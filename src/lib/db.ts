@@ -39,7 +39,9 @@ interface ITransactionDetails {
     forwardingAddress: string;
     forwardingChannel: string;
     blockHash: string;
+    risksIdentified: string[];
     blockTimestamp: number;
+    confirmationBlockNumber: number;
     created: number;
 }
 
@@ -93,6 +95,8 @@ const transactionSchema = new Schema<ITransaction>({
     forwardingChannel: { type: String, required: true },
     blockHash: { type: String, required: true },
     blockTimestamp: { type: Number, required: true },
+    risksIdentified: { type: [String], required: true },
+    confirmationBlockNumber: { type: Number, required: true },
     created: { type: Number, required: true },
 });
 
@@ -533,6 +537,41 @@ export const getNobleAccount = async (
 ): Promise<INobleAccount | null> => {
     return await NobleAccount.findOne({ nobleAddress });
 };
+
+/**
+ * Sums the transaction amounts for a specific chain starting from a given block number.
+ *
+ * @param collection - MongoDB collection containing transaction details.
+ * @param chain - The blockchain name to filter transactions (e.g., "Ethereum").
+ * @param blockNumber - The minimum block number to consider for the sum.
+ * @returns The total transaction amount for the specified chain and block range.
+ */
+export const sumTransactionAmounts = async (
+    chain: string,
+    blockNumber: number
+): Promise<number> => {
+    // Perform an aggregation query to calculate the sum of amounts
+    const result = await Transaction.aggregate<{ totalAmount: number }>([
+        // Match stage: Filter transactions for the specified chain and blockNumber >= given value
+        {
+            $match: {
+                chain: chain, // Filter by the blockchain name
+                blockNumber: { $gte: blockNumber }, // Only include transactions from this block onward
+                risksIdentified: { $size: 0 } // With no risks
+            },
+        },
+        // Group stage: Group all matching transactions and calculate the total sum of the "amount" field
+        {
+            $group: {
+                _id: null, // Use null as _id since we don't need to group by a specific field
+                totalAmount: { $sum: "$amount" }, // Sum up the "amount" field for all matching documents
+            },
+        },
+    ]);
+
+    // Return the calculated total amount if there are results, otherwise return 0
+    return result.length > 0 ? result[0].totalAmount : 0;
+}
 
 // Initialize DB connection on app start
 connectDB();

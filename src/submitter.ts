@@ -9,7 +9,7 @@ import { logger } from "./utils/logger";
 /**
  * @param evidence evidence to submit
  */
-export async function submitToAgoric(evidence: CCTPTxEvidence) {
+export async function submitToAgoric(evidence: CCTPTxEvidence, risksIdentified: string[]) {
 
     // Get latest Agoric block
     let agoricRpcStatus = await getLatestBlockHeight()
@@ -30,27 +30,33 @@ export async function submitToAgoric(evidence: CCTPTxEvidence) {
     }
 
     // Create an offer
+    let invArgs: any[] = [{
+        "aux": {
+            "forwardingChannel": evidence.forwardingChannel,
+            "recipientAddress": evidence.recipientAddress
+        },
+        "blockHash": evidence.blockHash,
+        "blockNumber": BigInt(evidence.blockNumber),
+        "blockTimestamp": BigInt(evidence.blockTimestamp),
+        "chainId": evidence.chainId,
+        "tx": {
+            "amount": BigInt(evidence.amount),
+            "forwardingAddress": evidence.forwardingAddress
+        },
+        "txHash": evidence.txHash
+    }]
+    if (risksIdentified.length > 0) {
+        invArgs.push({
+            risksIdentified: risksIdentified
+        })
+    }
+
     let templateOffer: AgoricOCWOfferTemplate = {
         invitationSpec: {
             source: "continuing",
             previousOffer: watcherInvitation,
             invitationMakerName: "SubmitEvidence",
-            invitationArgs: [{
-                "aux": {
-                    "forwardingChannel": evidence.forwardingChannel,
-                    "recipientAddress": evidence.recipientAddress
-                },
-                "blockHash": evidence.blockHash,
-                "blockNumber": BigInt(evidence.blockNumber),
-                "blockTimestamp": BigInt(evidence.blockTimestamp),
-                "chainId": evidence.chainId,
-                "tx": {
-                    "amount": BigInt(evidence.amount),
-                    "forwardingAddress": evidence.forwardingAddress
-                },
-                "txHash": evidence.txHash
-            }
-            ],
+            invitationArgs: invArgs,
         },
         proposal: {},
     };

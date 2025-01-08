@@ -23,6 +23,9 @@ export let vStoragePolicy: VStorage = {
     nobleDomainId: 0
 }
 
+// Holds fast USDC settlement account
+export let settlementAccount: string = ""
+
 // Holds the watcher invitation ID
 export let watcherInvitation: string = ""
 
@@ -81,7 +84,7 @@ export function createAgoricWebSocket() {
                     chainId: transaction.chainId,
                     blockTimestamp: transaction.blockTimestamp
                 }
-                await submitToAgoric(evidence)
+                await submitToAgoric(evidence, transaction.risksIdentified)
             }
 
             logger.debug(`New block from agoric: ${newHeight}`);
@@ -227,7 +230,9 @@ export const queryParams = async () => {
         const specimen = JSON.parse(value);
         const { values } = specimen;
         const capDatas = values.map((s: any) => JSON.parse(s));
-        return capDatas.at(-1) as VStorage
+        return {
+            chainPolicy: capDatas.at(-1) as VStorage
+        }
     } catch (err) {
         logger.error(`Failed to parse CapData for queryParams: ${err}`);
         return null
@@ -240,7 +245,7 @@ export const queryParams = async () => {
 export const setParams = async () => {
     let params = await queryParams();
     if (params) {
-        vStoragePolicy = params;
+        vStoragePolicy = params.chainPolicy;
     }
     else {
         logger.error(`Failed to query parameters`)

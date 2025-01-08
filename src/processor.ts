@@ -1,14 +1,32 @@
-import { addRemovedTX, addTransaction, getTransactionByHash, updateTransactionStatus } from "./lib/db";
+import { addRemovedTX, addTransaction, getTransactionByHash, sumTransactionAmounts, updateTransactionStatus } from "./lib/db";
 import { NobleLCD, getForwardingAccount, getNobleLCDClient } from "./lib/noble-lcd";
-import { CCTPTxEvidence, DepositForBurnEvent, NobleAddress, TransactionStatus } from "./types";
+import { BlockRangeAmountState, CCTPTxEvidence, DepositForBurnEvent, NobleAddress, TransactionStatus, TxThreshold } from "./types";
 import { decodeToNoble } from "./utils/address";
 import { logger } from "./utils/logger";
 import { incrementEventsCount, incrementRevertedCount, incrementTotalAmount } from "./metrics";
-import { vStoragePolicy } from "./lib/agoric";
+import { settlementAccount, vStoragePolicy } from "./lib/agoric";
 import { ENV } from "./config/config";
 import { NOBLE_CCTP_DOMAIN, UNKNOWN_FA } from "./constants";
+import { getTotalSumForChainBlockRangeAmount } from "./state";
 
-export async function processCCTPBurnEventLog(event: DepositForBurnEvent, originChain: string, nobleLCD = getNobleLCDClient()): (Promise<CCTPTxEvidence | null>) {
+/**
+ * Function to get the confirmations needed for an amount
+ * @param amount The amount for the TX
+ * @param txThresholds The transaction thresholds for the chain
+ * @returns a number of confirmations or -1 if above the threshold
+ */
+function getConfirmations(amount: number, txThresholds: TxThreshold[]): number {
+    // Sort thresholds by maxAmount in ascending order
+    const sortedThresholds = [...txThresholds].sort((a, b) => a.maxAmount - b.maxAmount);
+
+    // Find the first threshold where the amount is less than or equal to maxAmount
+    const threshold = sortedThresholds.find(t => amount <= t.maxAmount);
+
+    // Return the confirmations or a default value (e.g., -1) if no threshold is matched
+    return threshold ? threshold.confirmations : -1;
+}
+
+export async function processCCTPBurnEventLog(event: DepositForBurnEvent, originChain: string, nobleLCD = getNobleLCDClient(), backfilling: boolean = false): (Promise<CCTPTxEvidence | null>) {
     // If not to noble
     if (event.destinationDomain != (vStoragePolicy.nobleDomainId || NOBLE_CCTP_DOMAIN)) {
         logger.debug(`NOT FOR NOBLE from ${originChain}: ${event.transactionHash}`)
@@ -78,24 +96,52 @@ export async function processCCTPBurnEventLog(event: DepositForBurnEvent, origin
         return null;
     }
 
+    // Check for settlementAccount
+    if (agoricForwardingAcct.recipient != settlementAccount) {
+        logger.debug(`TX ${event.transactionHash} on ${originChain} with recipient ${agoricForwardingAcct.recipient} is not the settlement account( address:${settlementAccount} )`)
+        return null;
+    }
+
     let amount = Number(event.amount)
-    // TODO: make constant
     if (agoricForwardingAcct.recipient != UNKNOWN_FA) {
         incrementEventsCount(originChain)
         incrementTotalAmount(originChain, amount)
     }
+
+    let risksIdentified: string[] = []
+    // Check tx amount
+    if (Number(event.amount) > vStoragePolicy.chainPolicies[originChain].maxAmountPerTransaction) {
+        logger.debug(`TX ${event.transactionHash} on ${originChain} with amount ${amount} exceeds the TX amount limit ${vStoragePolicy.chainPolicies[originChain].maxAmountPerTransaction}`)
+        risksIdentified.push("TX_LIMIT_EXCEEDED")
+    }
+
+    // Get current sum for block range
+    // If backfilling, get the count from DB, otherwise from state
+    let currentBlockRangeAmount = backfilling ? await sumTransactionAmounts(originChain, Number(event.blockNumber) - vStoragePolicy.chainPolicies[originChain].blockWindowSize) : getTotalSumForChainBlockRangeAmount(originChain)
+    let remainingAmountInBlockRange = Number(vStoragePolicy.chainPolicies[originChain].maxAmountPerBlockWindow) - currentBlockRangeAmount
+
+    // If TX amount is greater than remaining allowed amount
+    if (amount > remainingAmountInBlockRange) {
+        logger.debug(`TX ${event.transactionHash} on ${originChain} with amount ${amount} exceeds the Block amount limit ${vStoragePolicy.chainPolicies[originChain].maxAmountPerBlockWindow} (Remaining allowed: ${remainingAmountInBlockRange})`)
+        risksIdentified.push("BLOCK_RANGE_LIMIT_EXCEEDED")
+    }
+
+    // Get confirmations for amount
+    let confirmations = getConfirmations(amount, vStoragePolicy.chainPolicies[originChain].txThresholds)
 
     await addTransaction({
         chain: originChain,
         status: TransactionStatus.CONFIRMED,
         blockNumber: Number(event.blockNumber),
         transactionHash: event.transactionHash,
-        amount: Number(event.amount),
+        amount: amount,
         recipientAddress: agoricForwardingAcct.recipient,
         forwardingAddress: nobleAddress,
         forwardingChannel: vStoragePolicy.nobleAgoricChannelId,
         blockHash: event.blockHash,
         blockTimestamp: Number(event.blockTimestamp),
+        risksIdentified: risksIdentified,
+        confirmationBlockNumber: Number(event.blockNumber) + confirmations,
         created: Date.now()
     })
 

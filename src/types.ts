@@ -58,11 +58,17 @@ export type AgoricRPCStatus = {
   syncing: boolean;
 }
 
+export type TxThreshold = { maxAmount: number; confirmations: number };
+
 export type ChainPolicy = {
   cctpTokenMessengerAddress: string;
   chainId: number;
   confirmations: number;
   nobleContractAddress: string;
+  maxAmountPerTransaction: number;
+  maxAmountPerBlockWindow: number;
+  blockWindowSize: number;
+  txThresholds: TxThreshold[]
 };
 
 export type VStorage = {
@@ -142,3 +148,10 @@ export type QueryAccountError = {
   message: string;
   details: string[];
 };
+
+export type chainBlockRangeAmountState = {
+  block: number;
+  sum: number;
+};
+
+export type BlockRangeAmountState = Record<string, { entries: chainBlockRangeAmountState[] }>;

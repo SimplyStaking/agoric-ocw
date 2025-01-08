@@ -69,7 +69,7 @@ export function listen(chain: ChainConfig) {
     }
 
     let transactions = await getTransactionsToBeSentForChain(chain.name, blockNumber)
-    
+
     // For each transaction to be submitted, submit
     for (let transaction of transactions) {
       let evidence = {
@@ -84,7 +84,7 @@ export function listen(chain: ChainConfig) {
         chainId: vStoragePolicy.chainPolicies[transaction.chain].chainId,
         blockTimestamp: transaction.blockTimestamp
       }
-      await submitToAgoric(evidence)
+      await submitToAgoric(evidence, transaction.risksIdentified)
     }
 
     setRpcAlive(name, true);

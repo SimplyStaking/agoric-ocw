@@ -3,7 +3,7 @@ import { EVENT_ABI, getChainFromConfig } from "./config/config";
 import { ChainConfig, DepositForBurnEvent } from "./types";
 import { getWsProvider } from "./lib/evm-client";
 import { logger } from "./utils/logger";
-import { getAllHeights, setHeightForChain } from "./lib/db";
+import { getAllHeights, setHeightForChain, sumTransactionAmounts } from "./lib/db";
 import { Hex } from "viem";
 import { processCCTPBurnEventLog } from "./processor";
 import { setRpcAlive } from "./metrics";
@@ -82,6 +82,10 @@ export async function backfillChain(
     }
     // Store height in DB after backfill if a log is found
     await setHeightForChain(chain.name, latestBlockNumber);
+
+    // After backfilling, update state for bnlcok range amount
+    let currentBlockRangeAmount = await sumTransactionAmounts(chain.name, latestBlockNumber - - vStoragePolicy.chainPolicies[chain.name].blockWindowSize)
+
 
   } catch (err) {
     logger.error(`Error fetching backfilled logs from ${chain.name}: ${err}`);
