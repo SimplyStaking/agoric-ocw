@@ -17,7 +17,7 @@ export const TESTING_NOBLE_FA: BaseAccount | ForwardingAccount = {
     channel: EXPECTED_NOBLE_CHANNEL_ID,
     created_at: '10599524',
     recipient:
-        'agoric16kv2g7snfc4q24vg3pjdlnnqgngtjpwtetd2h689nz09lcklvh5s8u37ek+osmo183dejcnmkka5dzcu9xw6mywq0p2m5peks28men',
+        'agoric10rchpz2x9xseyv3066z8hqt5hdujdpqqu807rk92wscuqvegmya69ujg8az423padaek6me38qekget2vdhx66mtvy6kg7nrw5uhsaekd4uhwufswqex6dtsv44hxv3cd4jkuqpqctwlyg',
 };
 
 export const PORT = 3011;

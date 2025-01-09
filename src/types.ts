@@ -15,8 +15,14 @@ export type CCTPTxEvidence = {
   forwardingChannel: IBCChannelID;
   recipientAddress: string;
   txHash: Hex;
+  sender: Hex;
   chainId: number;
 };
+
+export type SubmissionQueueEvidence = {
+  evidence: CCTPTxEvidence
+  risksIdentified: string[]
+}
 
 export type CCTPReOrgEvidence = {
   txHash: Hex;
@@ -61,10 +67,10 @@ export type AgoricRPCStatus = {
 export type TxThreshold = { maxAmount: number; confirmations: number };
 
 export type ChainPolicy = {
+  attenuatedCttpBridgeAddress: string;
   cctpTokenMessengerAddress: string;
   chainId: number;
   confirmations: number;
-  nobleContractAddress: string;
   maxAmountPerTransaction: number;
   maxAmountPerBlockWindow: number;
   blockWindowSize: number;
@@ -149,9 +155,27 @@ export type QueryAccountError = {
   details: string[];
 };
 
-export type chainBlockRangeAmountState = {
+export type ChainBlockRangeAmountState = {
   block: number;
   sum: number;
 };
 
-export type BlockRangeAmountState = Record<string, { entries: chainBlockRangeAmountState[] }>;
+export type BlockRangeAmountState = Record<string, { entries: ChainBlockRangeAmountState[] }>;
+
+export type AccountResponse = {
+  account: {
+    "@type": string;
+    address: string;
+    pub_key?: {
+      "@type": string;
+      key: string;
+    };
+    account_number: string;
+    sequence: string;
+  };
+}
+
+export type AccountDetails = {
+  accountNumber: number;
+  sequence: number;
+}

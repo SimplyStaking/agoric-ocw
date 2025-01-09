@@ -1,9 +1,10 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import { DB_URL } from '../config/config';  // Import your DB connection URL from config
-import { ForwardingAccount, SubmissionStatus, TransactionStatus } from '../types';
+import { ChainBlockRangeAmountState, ForwardingAccount, SubmissionStatus, TransactionStatus } from '../types';
 import { logger } from '../utils/logger';
 import { vStoragePolicy } from './agoric';
 import { UNKNOWN_FA } from '../constants';
+import { Hex } from 'viem';
 
 let isConnected = false; // Variable to track the connection status
 
@@ -42,6 +43,7 @@ interface ITransactionDetails {
     risksIdentified: string[];
     blockTimestamp: number;
     confirmationBlockNumber: number;
+    sender: Hex,
     created: number;
 }
 
@@ -97,6 +99,7 @@ const transactionSchema = new Schema<ITransaction>({
     blockTimestamp: { type: Number, required: true },
     risksIdentified: { type: [String], required: true },
     confirmationBlockNumber: { type: Number, required: true },
+    sender: { type: String, required: true },
     created: { type: Number, required: true },
 });
 
@@ -464,7 +467,8 @@ export const getTransactionsToBeSentForChain = async (chain: string, currentHeig
     const transactions = await Transaction.aggregate([
         {
             $match: {
-                chain: chain, blockNumber: { $lte: currentHeight - vStoragePolicy.chainPolicies[chain].confirmations }
+                chain: chain,
+                blockNumber: { $lte: currentHeight - vStoragePolicy.chainPolicies[chain].confirmations },
             },
         },
         {
@@ -572,6 +576,62 @@ export const sumTransactionAmounts = async (
     // Return the calculated total amount if there are results, otherwise return 0
     return result.length > 0 ? result[0].totalAmount : 0;
 }
+
+/**
+ * Returns the sums of amounts for a specific block and the previous `x` blocks in the range.
+ * If any block in the range is missing, the function returns an empty array.
+ * 
+ * @param chain - The blockchain name (e.g., Ethereum, Polygon).
+ * @param blockNumber - The starting block number for the range.
+ * @param blockRange - The number of blocks to include before the given block (including the blockNumber).
+ * @returns An object containing `blockSums` (array of block sums) and `totalSum` (sum of all block sums).
+ */
+export const getBlockSums = async (
+    chain: string,
+    blockNumber: number,
+    blockRange: number
+) => {
+    // Define the range of blocks to query
+    const blocks = Array.from({ length: blockRange }, (_, i) => blockNumber - i).reverse();
+
+    // Perform an aggregation query to get sums for each block in the range
+    const result = await Transaction.aggregate<ChainBlockRangeAmountState>([
+        {
+            $match: {
+                chain: chain,
+                blockNumber: { $in: blocks },
+                risksIdentified: { $size: 0 }, // Only include transactions with no risks
+            },
+        },
+        {
+            $group: {
+                _id: "$blockNumber", // Group by blockNumber
+                sum: { $sum: "$amount" }, // Sum up the amounts for each block
+            },
+        },
+        {
+            $project: {
+                _id: 0, // Exclude _id field from the result
+                block: "$_id",
+                sum: 1,
+            },
+        },
+    ]);
+
+    // Create a map for quick lookups
+    const resultMap = new Map(result.map((entry) => [entry.block, entry.sum]));
+
+    // Ensure all blocks in the range exist, returning 0 if any are missing
+    const blockSums: ChainBlockRangeAmountState[] = blocks.map((block) => ({
+        block,
+        sum: resultMap.get(block) || 0,
+    }));
+
+    // Calculate the total sum
+    const totalSum = blockSums.reduce((acc, entry) => acc + entry.sum, 0);
+
+    return { blockSums, totalSum };
+};
 
 // Initialize DB connection on app start
 connectDB();

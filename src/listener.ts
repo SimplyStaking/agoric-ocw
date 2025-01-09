@@ -11,6 +11,8 @@ import { getLatestBlockHeight, vStoragePolicy } from './lib/agoric';
 import { getAllHeights, getTransactionsToBeSentForChain, setHeightForChain } from './lib/db';
 import { backfillChain } from './backfill';
 import { PROD } from './constants';
+import { addBlockRangeStateEntry, blockRangeAmountState } from './state';
+import { submissionQueue } from './queue';
 
 /**
  * Listens for `DepositForBurn` events and new blocks, and handles reconnections on error.
@@ -92,10 +94,14 @@ export function listen(chain: ChainConfig) {
         recipientAddress: transaction.recipientAddress,
         txHash: transaction.transactionHash,
         chainId: vStoragePolicy.chainPolicies[transaction.chain].chainId,
+        sender: transaction.sender,
         blockTimestamp: transaction.blockTimestamp
       }
-      submitToAgoric(evidence, transaction.risksIdentified, agoricRPCStatus)
+      submissionQueue.addToQueue(evidence, transaction.risksIdentified)
     }
+
+    // Update block range state with new block
+    addBlockRangeStateEntry(chain.name, blockNumber, vStoragePolicy.chainPolicies[chain.name].blockWindowSize)
   });
 
 }

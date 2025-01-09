@@ -13,8 +13,8 @@ import {
 import axios from "axios";
 import { setRpcBlockHeight, setWatcherLastOfferId } from "../metrics";
 import { getExpiredTransactionsWithInflightStatus, getLastOfferId, setLastOfferId, updateSubmissionStatus } from "./db";
-import { submitToAgoric } from "../submitter";
 import { MARSHALLER } from "../constants";
+import { submissionQueue } from "../queue";
 
 // Holds the vstorage policy obtained from Agoric
 export let vStoragePolicy: VStorage = {
@@ -81,10 +81,11 @@ export function createAgoricWebSocket() {
                     forwardingChannel: transaction.forwardingChannel,
                     recipientAddress: transaction.recipientAddress,
                     txHash: transaction.transactionHash,
-                    chainId: transaction.chainId,
+                    chainId: vStoragePolicy.chainPolicies[transaction.chain].chainId,
+                    sender: transaction.sender,
                     blockTimestamp: transaction.blockTimestamp
                 }
-                submitToAgoric(evidence, transaction.risksIdentified, agoricRPCStatus)
+                submissionQueue.addToQueue(evidence, transaction.risksIdentified)
             }
 
             logger.debug(`New block from agoric: ${newHeight}`);
@@ -136,7 +137,7 @@ export const execSwingsetTransaction = (
         ? `--keyring-backend=${keyring.backend}`
         : '';
     const cmd = `agd --node=${AGORIC_RPCS[ACTIVE_AGORIC_RPC_INDEX]} --chain-id=${AGORIC_NETWORK} ${homeOpt} ${backendOpt} --from=${from} tx swingset ${swingsetArgs} --output=json --yes`;
-    logger.debug('Executing ', cmd);
+    logger.debug(`Executing ${cmd}`);
     let response = JSON.parse(execSync(cmd).toString());
     return {
         code: response.code,
@@ -232,8 +233,10 @@ export const queryParams = async () => {
         const chainPolicyCapDataStr = values.map((s: any) => JSON.parse(s));
         capDataStr = await vstorage.readLatest("published.fastUsdc")
         const settlementAddressCapDataStr = JSON.parse(JSON.parse(capDataStr).value).values.map((s: any) => JSON.parse(s))
+        let chainPolicy = JSON.parse(chainPolicyCapDataStr.at(-1).body.split("#")[1])
+        chainPolicy.maxAmountPerBlockWindow = parseInt(chainPolicy.maxAmountPerBlockWindow, 10)
         return {
-            chainPolicy: chainPolicyCapDataStr.at(-1) as VStorage,
+            chainPolicy: chainPolicy as VStorage,
             settlementAccount: settlementAddressCapDataStr.at(-1).settlementAccount
         }
     } catch (err) {

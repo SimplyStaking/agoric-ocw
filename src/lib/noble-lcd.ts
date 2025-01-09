@@ -63,7 +63,7 @@ export const getForwardingAccount =
     // The response is deterministic, so let's store results in a DB
     const cached = await getNobleAccount(address)
     if (cached) {
-      logger.debug(`Retrieved Noble forwardig account details from DB for ${address}.`);
+      logger.debug(`Retrieved Noble forwarding account details from DB for ${address}.`);
       const { isAgoricForwardingAcct, account } = cached;
       if (!isAgoricForwardingAcct) {
         logger.debug(`${address} is not an Agoric forwarding account.`);
@@ -107,7 +107,7 @@ export const getForwardingAccount =
         return null;
       }
 
-      // Check foe EUD parameter
+      // Check for EUD parameter
       try {
         const { EUD } = decodeAddressHook(accountDetails.recipient).query;
         if (!EUD) {
@@ -130,7 +130,7 @@ export const getForwardingAccount =
       await addNobleAccount({
         nobleAddress: address,
         account: accountDetails,
-        isAgoricForwardingAcct: false
+        isAgoricForwardingAcct: true
       })
       return accountDetails;
 

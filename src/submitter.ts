@@ -5,6 +5,7 @@ import { addSubmission, getSubmission, updateSubmissionStatus } from "./lib/db";
 import { setAgoricActiveRpc } from "./metrics";
 import { AgoricOCWOfferTemplate, AgoricRPCStatus, AgoricSubmissionResponse, CCTPTxEvidence, SubmissionStatus, TransactionStatus } from "./types";
 import { logger } from "./utils/logger";
+import { incrementWatcherAccountSequenceNumber, setWatcherAccountSequenceNumber, watcherAccount } from "./state";
 
 /**
  * Submits evidence to Agoric
@@ -38,11 +39,11 @@ export async function submitToAgoric(evidence: CCTPTxEvidence, risksIdentified: 
         },
         "blockHash": evidence.blockHash,
         "blockNumber": BigInt(evidence.blockNumber),
-        "blockTimestamp": BigInt(evidence.blockTimestamp),
         "chainId": evidence.chainId,
         "tx": {
             "amount": BigInt(evidence.amount),
-            "forwardingAddress": evidence.forwardingAddress
+            "forwardingAddress": evidence.forwardingAddress,
+            "sender": evidence.sender
         },
         "txHash": evidence.txHash
     }]
@@ -63,7 +64,7 @@ export async function submitToAgoric(evidence: CCTPTxEvidence, risksIdentified: 
     };
 
     let keyring = {
-        home: "",
+        home: "/app/.agoric",
         backend: "test",
     };
 
@@ -86,10 +87,11 @@ export async function submitToAgoric(evidence: CCTPTxEvidence, risksIdentified: 
     let timeoutHeight = rpcStatus.height + TX_TIMEOUT_BLOCKS;
     // Execute tx
     let response: AgoricSubmissionResponse = await execSwingsetTransaction(
-        `wallet-action --allow-spend '${JSON.stringify(offerData)}' --gas-prices=0.01ubld --timeout-height=${timeoutHeight}`,
+        `wallet-action --allow-spend '${JSON.stringify(offerData)}' --gas-prices=0.01ubld --offline --account-number=${watcherAccount.accountNumber} --sequence=${watcherAccount.sequence} --timeout-height=${timeoutHeight}`,
         WATCHER_WALLET_ADDRESS,
         keyring
     );
+    incrementWatcherAccountSequenceNumber();
 
     logger.info("Response: " + JSON.stringify(response))
 
@@ -98,6 +100,19 @@ export async function submitToAgoric(evidence: CCTPTxEvidence, risksIdentified: 
         logger.info(`Evidence sent successfully: ${response.txhash}`)
         // Set submission as in flight
         await addSubmission(String(id), evidence.txHash, evidence.status == TransactionStatus.REORGED, SubmissionStatus.INFLIGHT, timeoutHeight)
+    }
+    else {
+        // Get raw log
+        let rawLog = response["raw_log"];
+        // If error contains sequence mismatch
+        if (rawLog.includes("incorrect account sequence")) {
+            // setSequence
+            const regex = /\d+/g;
+            const numbers = rawLog.match(regex);
+            let expectedSequence = Number(numbers![0])
+            logger.debug(`Setting watcher account sequence to ${expectedSequence}`)
+            setWatcherAccountSequenceNumber(expectedSequence)
+        }
     }
 }
 
