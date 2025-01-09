@@ -3,7 +3,7 @@ import { EVENT_ABI, getChainFromConfig } from "./config/config";
 import { ChainConfig, DepositForBurnEvent } from "./types";
 import { getWsProvider } from "./lib/evm-client";
 import { logger } from "./utils/logger";
-import { getAllHeights, setHeightForChain, sumTransactionAmounts, getBlockSums } from "./lib/db";
+import { getAllHeights, setHeightForChain, getBlockSums } from "./lib/db";
 import { Hex } from "viem";
 import { processCCTPBurnEventLog } from "./processor";
 import { setRpcAlive } from "./metrics";

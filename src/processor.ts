@@ -1,13 +1,13 @@
 import { addRemovedTX, addTransaction, getBlockSums, getTransactionByHash, sumTransactionAmounts, updateTransactionStatus } from "./lib/db";
-import { NobleLCD, getForwardingAccount, getNobleLCDClient } from "./lib/noble-lcd";
-import { BlockRangeAmountState, CCTPTxEvidence, DepositForBurnEvent, NobleAddress, TransactionStatus, TxThreshold } from "./types";
+import { getForwardingAccount, getNobleLCDClient } from "./lib/noble-lcd";
+import { CCTPTxEvidence, DepositForBurnEvent, NobleAddress, TransactionStatus, TxThreshold } from "./types";
 import { decodeToNoble } from "./utils/address";
 import { logger } from "./utils/logger";
 import { incrementEventsCount, incrementRevertedCount, incrementTotalAmount } from "./metrics";
 import { settlementAccount, vStoragePolicy } from "./lib/agoric";
 import { ENV } from "./config/config";
 import { NOBLE_CCTP_DOMAIN, UNKNOWN_FA } from "./constants";
-import { blockRangeAmountState, getTotalSumForChainBlockRangeAmount, incrementOrCreateBlock } from "./state";
+import { getTotalSumForChainBlockRangeAmount, incrementOrCreateBlock } from "./state";
 import { decodeAddressHook } from "@agoric/cosmic-proto/address-hooks.js";
 import { Hex } from "viem";
 
