@@ -17,9 +17,12 @@ jest.mock('./../../src/lib/agoric', () => ({
   vStoragePolicy: {
     chainPolicies: {
       "Ethereum": {
-        attenuatedCttpBridgeAddress: "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
+        attenuatedCttpBridgeAddresses: ["0x19330d10D9Cc8751218eaf51E8885D058642E08A"],
         chainId: 1,
-        nobleContractAddress: "0x19330d10D9Cc8751218eaf51E8885D058642E08A"
+        nobleContractAddress: "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
+        tx: 1000,
+        blockWindow: 10000,
+        blockWindowSize: 10,
       }
     }, nobleAgoricChannelId: 'channel-2a', nobleDomainId: 4
   },
@@ -142,6 +145,19 @@ describe('processor Tests', () => {
     const nonNobleSender = {
       ...DEPOSIT_FOR_BURN_EVENTS['agoric-forwarding-acct'],
       sender: "0x00000"
+    };
+
+    let evidence = await processCCTPBurnEventLog(nonNobleSender, "Ethereum", fakeNobleLCD);
+
+    // Should not report for non-Noble domains
+    expect(evidence).toBe(null);
+  });
+
+  test('handles large tx', async () => {
+    const nonNobleSender = {
+      ...DEPOSIT_FOR_BURN_EVENTS['agoric-forwarding-acct'],
+      sender: "0x00000",
+      amount: 100000n
     };
 
     let evidence = await processCCTPBurnEventLog(nonNobleSender, "Ethereum", fakeNobleLCD);

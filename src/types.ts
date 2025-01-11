@@ -67,12 +67,12 @@ export type AgoricRPCStatus = {
 export type TxThreshold = { maxAmount: number; confirmations: number };
 
 export type ChainPolicy = {
-  attenuatedCttpBridgeAddress: string;
+  attenuatedCttpBridgeAddresses: Hex[];
   cctpTokenMessengerAddress: string;
   chainId: number;
   confirmations: number;
-  maxAmountPerTransaction: number;
-  maxAmountPerBlockWindow: number;
+  tx: number;
+  blockWindow: number;
   blockWindowSize: number;
   txThresholds: TxThreshold[]
 };

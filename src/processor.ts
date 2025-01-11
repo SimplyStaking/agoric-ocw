@@ -53,7 +53,7 @@ export async function processCCTPBurnEventLog(event: DepositForBurnEvent, origin
     }
 
     // If not noble contract address
-    if (ENV != "dev" && event.sender != vStoragePolicy.chainPolicies[originChain].attenuatedCttpBridgeAddress) {
+    if (ENV != "dev" && !vStoragePolicy.chainPolicies[originChain].attenuatedCttpBridgeAddresses.includes(event.sender as Hex)) {
         logger.error(`(TX ${event.transactionHash}) not from Noble contract address (FROM: ${event.sender}) `)
         return null;
     }
@@ -118,8 +118,8 @@ export async function processCCTPBurnEventLog(event: DepositForBurnEvent, origin
 
     let risksIdentified: string[] = []
     // Check tx amount
-    if (Number(event.amount) > vStoragePolicy.chainPolicies[originChain].maxAmountPerTransaction) {
-        logger.error(`TX ${event.transactionHash} on ${originChain} with amount ${amount} exceeds the TX amount limit ${vStoragePolicy.chainPolicies[originChain].maxAmountPerTransaction}`)
+    if (Number(event.amount) > vStoragePolicy.chainPolicies[originChain].tx) {
+        logger.error(`TX ${event.transactionHash} on ${originChain} with amount ${amount} exceeds the TX amount limit ${vStoragePolicy.chainPolicies[originChain].tx}`)
         risksIdentified.push("TX_LIMIT_EXCEEDED")
     }
 
@@ -127,11 +127,11 @@ export async function processCCTPBurnEventLog(event: DepositForBurnEvent, origin
     // If backfilling, get the count from DB, otherwise from state
     let currentBlockRangeAmount = backfilling ? (await getBlockSums(originChain, Number(event.blockNumber), vStoragePolicy.chainPolicies[originChain].blockWindowSize)).totalSum : getTotalSumForChainBlockRangeAmount(originChain)
     logger.debug(`${originChain} has an amount of ${currentBlockRangeAmount} in the current block window`)
-    let remainingAmountInBlockRange = Number(vStoragePolicy.chainPolicies[originChain].maxAmountPerBlockWindow) - currentBlockRangeAmount
+    let remainingAmountInBlockRange = Number(vStoragePolicy.chainPolicies[originChain].blockWindow) - currentBlockRangeAmount
 
     // If TX amount is greater than remaining allowed amount
     if (amount > remainingAmountInBlockRange) {
-        logger.error(`TX ${event.transactionHash} on ${originChain} with amount ${amount} exceeds the Block amount limit ${vStoragePolicy.chainPolicies[originChain].maxAmountPerBlockWindow} (Remaining allowed: ${remainingAmountInBlockRange})`)
+        logger.error(`TX ${event.transactionHash} on ${originChain} with amount ${amount} exceeds the Block amount limit ${vStoragePolicy.chainPolicies[originChain].blockWindow} (Remaining allowed: ${remainingAmountInBlockRange})`)
         risksIdentified.push("BLOCK_RANGE_LIMIT_EXCEEDED")
     }
 
@@ -140,7 +140,7 @@ export async function processCCTPBurnEventLog(event: DepositForBurnEvent, origin
 
     // If above thresholds
     if (confirmations == -1) {
-        logger.error(`TX ${event.transactionHash} on ${originChain} with amount ${amount} exceeds the TX amount limit ${vStoragePolicy.chainPolicies[originChain].maxAmountPerTransaction}`)
+        logger.error(`TX ${event.transactionHash} on ${originChain} with amount ${amount} exceeds the TX amount limit ${vStoragePolicy.chainPolicies[originChain].tx}`)
         risksIdentified.push("TX_LIMIT_EXCEEDED")
     }
 
