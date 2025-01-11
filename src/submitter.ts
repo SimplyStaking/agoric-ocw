@@ -76,15 +76,8 @@ export async function submitToAgoric(evidence: CCTPTxEvidence, risksIdentified: 
         offer,
     });
 
-    let rpcStatus = await getLatestBlockHeight()
-
-    if (rpcStatus.syncing) {
-        logger.warn(`Skipping submission because Agoric RPC is still syncing on height ${rpcStatus.height}`)
-        return
-    }
-
     // Set timeout height
-    let timeoutHeight = rpcStatus.height + TX_TIMEOUT_BLOCKS;
+    let timeoutHeight = agoricRpcStatus.height + TX_TIMEOUT_BLOCKS;
     // Execute tx
     let response: AgoricSubmissionResponse = await execSwingsetTransaction(
         `wallet-action --allow-spend '${JSON.stringify(offerData)}' --gas-prices=0.01ubld --offline --account-number=${watcherAccount.accountNumber} --sequence=${watcherAccount.sequence} --timeout-height=${timeoutHeight}`,

@@ -20,6 +20,11 @@ export const makeSubmissionQueue = () => {
         isProcessing = true;
         let agoricRPCStatus = await getLatestBlockHeight()
 
+        if (agoricRPCStatus.syncing) {
+            logger.warn(`Skipping submissions because Agoric RPC is still syncing on height ${agoricRPCStatus.height}`)
+            return
+        }
+
         while (queue.length > 0) {
             const evidence = queue.shift();
             if (!evidence) continue;

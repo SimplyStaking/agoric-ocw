@@ -80,8 +80,6 @@ export function listen(chain: ChainConfig) {
     // Set height in DB
     await setHeightForChain(chain.name, blockNumber);
 
-    let agoricRPCStatus = await getLatestBlockHeight()
-
     // For each transaction to be submitted, submit
     for (let transaction of transactions) {
       let evidence = {
