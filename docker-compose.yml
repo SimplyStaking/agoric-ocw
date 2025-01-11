@@ -28,4 +28,5 @@ services:
     volumes:
       - "./binaries/agd:/usr/local/bin/agd"
       - "~/.agoric:/root/.agoric"
+      - "./.env:/app/.env"
     command: ["node_modules/.bin/tsx", "./src/index.ts"]
