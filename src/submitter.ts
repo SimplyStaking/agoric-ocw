@@ -105,6 +105,8 @@ export async function submitToAgoric(evidence: CCTPTxEvidence, risksIdentified: 
             let expectedSequence = Number(numbers![0])
             logger.debug(`Setting watcher account sequence to ${expectedSequence}`)
             setWatcherAccountSequenceNumber(expectedSequence)
+            // retry
+            await submitToAgoric(evidence, risksIdentified, agoricRpcStatus)
         }
     }
 }
