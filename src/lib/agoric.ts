@@ -13,8 +13,8 @@ import {
 import axios from "axios";
 import { setRpcBlockHeight, setWatcherLastOfferId } from "../metrics";
 import { getExpiredTransactionsWithInflightStatus, getLastOfferId, setLastOfferId, updateSubmissionStatus } from "./db";
-import { MARSHALLER } from "../constants";
 import { submissionQueue } from "../queue";
+import { MARSHALLER } from "@src/constants";
 
 // Holds the vstorage policy obtained from Agoric
 export let vStoragePolicy: VStorage = {
@@ -45,7 +45,7 @@ const emptyCurrentRecord = {
 /**
  * Creates a websocket to be used for the websocket provider for Agoric
  */
-export function createAgoricWebSocket() {
+export const createAgoricWebSocket = () => {
     let url = AGORIC_WS_RPCS[ACTIVE_AGORIC_RPC_INDEX]
     agoricWsProvider = new WebSocket(url);
 
@@ -69,7 +69,6 @@ export function createAgoricWebSocket() {
 
             // Check for offers to be resubmitted
             let expiredTransactions = await getExpiredTransactionsWithInflightStatus(newHeight)
-            let agoricRPCStatus = await getLatestBlockHeight()
             // Loop though these and resubmit
             for (let transaction of expiredTransactions) {
                 let evidence = {
@@ -473,4 +472,4 @@ export const getLatestBlockHeight = async () => {
             syncing: true
         };
     }
-}
+};

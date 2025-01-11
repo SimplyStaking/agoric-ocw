@@ -11,8 +11,35 @@
     "strictNullChecks": true,
     "noImplicitThis": true,
     "skipLibCheck": true,
+    "types": [
+      "jest",
+      "node",
+      "@types/jest"
+    ],
     "sourceMap": true,
+    "baseUrl": "./",
+    "paths": {
+      "@src/*": [
+        "src/*"
+      ],
+      "@lib/*": [
+        "src/lib/*"
+      ],
+      "@utils/*": [
+        "src/utils/*"
+      ]
+    }
   },
-  "include": ["scripts", "src", "test"],
-  "exclude": ["node_modules"],
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifierResolution": "node"
+  },
+  "include": [
+    "scripts",
+    "src",
+    "test"
+  ],
+  "exclude": [
+    "node_modules"
+  ],
 }

@@ -1,6 +1,7 @@
 require('dotenv').config({ path: '.env.test' });
 
-import { EXPECTED_NOBLE_CHANNEL_ID } from "../../src/constants";
+import { decodeAddressHook } from "@agoric/cosmic-proto/address-hooks.js";
+import { EXPECTED_NOBLE_CHANNEL_ID, TESTING_NOBLE_FA_RECIPIENT, TESTING_SETTLEMENT_ADDR } from "../../src/constants";
 import { processCCTPBurnEventLog } from "../../src/processor";
 import { TransactionStatus } from "../../src/types";
 import { DEPOSIT_FOR_BURN_EVENTS } from "../fixtures/deposit-for-burn-events";
@@ -16,16 +17,25 @@ jest.mock('./../../src/lib/agoric', () => ({
   vStoragePolicy: {
     chainPolicies: {
       "Ethereum": {
+        attenuatedCttpBridgeAddress: "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
         chainId: 1,
         nobleContractAddress: "0x19330d10D9Cc8751218eaf51E8885D058642E08A"
       }
     }, nobleAgoricChannelId: 'channel-2a', nobleDomainId: 4
   },
+  initChainPolicyScraper: jest.fn(),
+  initAgoricState: jest.fn(),
+  getInvitation: jest.fn(),
+  createAgoricWebSocket: jest.fn(),
+  settlementAccount: TESTING_SETTLEMENT_ADDR,
 }));
 jest.mock('./../../src/lib/db', () => ({
   addTransaction: jest.fn(),
   getTransactionByHash: jest.fn(),
   updateTransactionStatus: jest.fn(),
+  getAllHeights: jest.fn(),
+  getNobleAccount: jest.fn(),
+  addNobleAccount: jest.fn(),
 }));
 
 jest.mock('./../../src/metrics', () => ({
@@ -33,10 +43,47 @@ jest.mock('./../../src/metrics', () => ({
   incrementEventsCount: jest.fn(),
   incrementTotalAmount: jest.fn(),
   incrementRevertedCount: jest.fn(),
+  intialiseGauges: jest.fn(),
+  getNobleAccount: jest.fn(),
+  setRpcAlive: jest.fn(),
 }));
 
-jest.mock('@agoric/client-utils', () => {
+jest.mock('./../../src/state', () => ({
+  getTotalSumForChainBlockRangeAmount: jest.fn().mockReturnValue(0),
+  incrementOrCreateBlock: jest.fn(),
+  getAgoricWatcherAccountDetails: jest.fn().mockReturnValue({
+    accountNumber: 1,
+    sequence: 1
+  }),
+}));
+
+jest.mock('@endo/init/pre.js', () => {
   return {};
+});
+
+jest.mock('@endo/init/pre-remoting.js', () => {
+  return {};
+});
+
+
+jest.mock('@endo/init/unsafe-fast.js', () => {
+  return {};
+});
+
+
+jest.mock('@agoric/cosmic-proto/address-hooks.js', () => {
+  return {
+    decodeAddressHook: jest.fn().mockReturnValue({
+      baseAddress: 'agoric139rzngvjxghadprms96tk7fxssqwrhlpmz48gvwqxv5djwaz7fyqcx9tq9',
+      query: { EUD: 'osmo183dejcnmkka5dzcu9xw6mywq0p2m5peks28men' }
+    })
+  };
+});
+
+jest.mock('@agoric/client-utils', () => {
+  return {
+    boardSlottingMarshaller: jest.fn()
+  };
 });
 
 jest.mock('@agoric/casting', () => {
@@ -97,8 +144,6 @@ describe('processor Tests', () => {
       sender: "0x00000"
     };
 
-    console.log("SENDER", nonNobleSender)
-
     let evidence = await processCCTPBurnEventLog(nonNobleSender, "Ethereum", fakeNobleLCD);
 
     // Should not report for non-Noble domains
@@ -118,7 +163,8 @@ describe('processor Tests', () => {
       forwardingAddress: SCENARIOS.AGORIC_PLUS_ADDR,
       forwardingChannel: EXPECTED_NOBLE_CHANNEL_ID,
       recipientAddress:
-        'agoric16kv2g7snfc4q24vg3pjdlnnqgngtjpwtetd2h689nz09lcklvh5s8u37ek+osmo183dejcnmkka5dzcu9xw6mywq0p2m5peks28men',
+        'agoric10rchpz2x9xseyv3066z8hqt5hdujdpqqu807rk92wscuqvegmya69ujg8az423padaek6me38qekget2vdhx66mtvy6kg7nrw5uhsaekd4uhwufswqex6dtsv44hxv3cd4jkuqpqctwlyg',
+      sender: "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
       txHash:
         '0xc81bc6105b60a234c7c50ac17816ebcd5561d366df8bf3be59ff387552761702',
     };

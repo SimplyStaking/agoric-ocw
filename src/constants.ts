@@ -1,4 +1,4 @@
-import { boardSlottingMarshaller } from '@agoric/client-utils';
+import { boardSlottingMarshaller } from "@agoric/client-utils";
 import { BaseAccount, ForwardingAccount } from "./types";
 
 export const UNKNOWN_FA = "UNKNOWN";
@@ -6,6 +6,8 @@ export const NOBLE_CCTP_DOMAIN = 4;
 export const PROD = "PROD";
 export const EXPECTED_NOBLE_CHANNEL_ID = "channel-21";
 export const TESTING_NOBLE_FA_ADDR = "noble1x0ydg69dh6fqvr27xjvp6maqmrldam6yfelqkd";
+export const TESTING_NOBLE_FA_RECIPIENT = "agoric10rchpz2x9xseyv3066z8hqt5hdujdpqqu807rk92wscuqvegmya69ujg8az423padaek6me38qekget2vdhx66mtvy6kg7nrw5uhsaekd4uhwufswqex6dtsv44hxv3cd4jkuqpqctwlyg"
+export const TESTING_SETTLEMENT_ADDR = "agoric139rzngvjxghadprms96tk7fxssqwrhlpmz48gvwqxv5djwaz7fyqcx9tq9";
 export const TESTING_NOBLE_FA: BaseAccount | ForwardingAccount = {
     '@type': '/noble.forwarding.v1.ForwardingAccount',
     base_account: {
@@ -16,8 +18,7 @@ export const TESTING_NOBLE_FA: BaseAccount | ForwardingAccount = {
     },
     channel: EXPECTED_NOBLE_CHANNEL_ID,
     created_at: '10599524',
-    recipient:
-        'agoric10rchpz2x9xseyv3066z8hqt5hdujdpqqu807rk92wscuqvegmya69ujg8az423padaek6me38qekget2vdhx66mtvy6kg7nrw5uhsaekd4uhwufswqex6dtsv44hxv3cd4jkuqpqctwlyg',
+    recipient: TESTING_NOBLE_FA_RECIPIENT,
 };
 
 export const PORT = 3011;

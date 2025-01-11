@@ -1,8 +1,8 @@
-import type { NobleAddress, QueryAccountError, QueryAccountResponse } from '../../src/types.js';
+import type { NobleAddress, QueryAccountError, QueryAccountResponse } from '@src/types.js';
 import type {
   NobleLCD,
-} from '../../src/lib/noble-lcd.js';
-import { EXPECTED_NOBLE_CHANNEL_ID } from '../../src/constants.js';
+} from '@lib/noble-lcd.js';
+import { TESTING_NOBLE_FA } from '@src/constants.js';
 
 export const SCENARIOS: Record<string, NobleAddress> = {
   AGORIC_PLUS_ADDR: 'noble1x0ydg69dh6fqvr27xjvp6maqmrldam6yfelqkd',
@@ -21,23 +21,12 @@ export const makeFakeNobleLCD = () =>
     queryAccount: async (
       address: NobleAddress,
     ): Promise<QueryAccountResponse | QueryAccountError> => {
+
       switch (address) {
         // forwarding account to agoric1+osmosis BaseAccount (plus address)
         case 'noble1x0ydg69dh6fqvr27xjvp6maqmrldam6yfelqkd': {
           return Promise.resolve({
-            account: {
-              '@type': '/noble.forwarding.v1.ForwardingAccount',
-              base_account: {
-                address: 'noble1x0ydg69dh6fqvr27xjvp6maqmrldam6yfelqkd',
-                pub_key: null,
-                account_number: '121',
-                sequence: '0',
-              },
-              channel: EXPECTED_NOBLE_CHANNEL_ID,
-              recipient:
-                'agoric16kv2g7snfc4q24vg3pjdlnnqgngtjpwtetd2h689nz09lcklvh5s8u37ek+osmo183dejcnmkka5dzcu9xw6mywq0p2m5peks28men',
-              created_at: '10599524',
-            },
+            account: TESTING_NOBLE_FA
           });
         }
 
