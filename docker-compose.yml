@@ -1,10 +1,21 @@
 version: '3.8'
 
 services:
+  verifier:
+    image: ghcr.io/sigstore/cosign/cosign:v2.4.1
+    entrypoint: ["cosign"]
+    command: [
+      "verify",
+      "--key",
+      "/keys/cosign.pub",
+      "simplystaking/agoric-fast-usdc-ocw:v0.0.3"
+    ]
+    volumes:
+      - ./keys:/keys
   agoricocw:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    depends_on:
+      - verifier
+    image: simplystaking/agoric-fast-usdc-ocw:v0.0.3
     stop_signal: SIGTERM
     stop_grace_period: 30s
     restart: always
@@ -17,4 +28,5 @@ services:
     volumes:
       - "./binaries/agd:/usr/local/bin/agd"
       - "~/.agoric:/root/.agoric"
+      - "./.env:/app/.env"
     command: ["node_modules/.bin/tsx", "./src/index.ts"]

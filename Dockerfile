@@ -1,5 +1,5 @@
-# Stage 1: Run the application
-FROM node:18
+# Stage 1: Build
+FROM node:18 AS builder
 
 # Set the working directory in the container
 WORKDIR /app
@@ -10,8 +10,17 @@ COPY package.json yarn.lock ./
 # Install dependencies
 RUN yarn install --frozen-lockfile
 
-# Copy the rest of the application code
+# Copy the entire application to the working directory
 COPY . .
 
-# Run the application
-CMD ["node_modules/.bin/tsx", "./src/index.ts"]
+# Stage 2: Runtime
+FROM gcr.io/distroless/nodejs18-debian12
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Copy build output and node_modules from the builder stage
+COPY --from=builder /app /app
+
+# Command to run your TypeScript code
+CMD ["start"]
