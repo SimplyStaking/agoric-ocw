@@ -3,7 +3,7 @@ import { logger } from "../utils/logger";
 import WebSocket from 'ws';
 import { execSync } from 'child_process';
 import { makeVstorageKit } from '@agoric/client-utils';
-import { AgoricSubmissionResponse, CctpTxSubmission, NetworkConfig, SubmissionStatus, TransactionStatus, VStorage } from "../types";
+import { AgoricSubmissionResponse, CctpTxSubmission, ChainPolicy, NetworkConfig, SubmissionStatus, TransactionStatus, VStorage } from "../types";
 import { BridgeAction } from '@agoric/smart-wallet/src/smartWallet.js'
 import {
     iterateReverse,
@@ -15,10 +15,12 @@ import { setRpcBlockHeight, setWatcherLastOfferId } from "../metrics";
 import { getExpiredTransactionsWithInflightStatus, getLastOfferId, setLastOfferId, updateSubmissionStatus } from "./db";
 import { submissionQueue } from "../queue";
 import { MARSHALLER } from "@src/constants";
+import { makeClientMarshaller } from "@src/utils/marshaller";
 
 // Holds the vstorage policy obtained from Agoric
 export let vStoragePolicy: VStorage = {
     chainPolicies: {},
+    eventFilter: '',
     nobleAgoricChannelId: '',
     nobleDomainId: 0
 }
@@ -34,6 +36,8 @@ export let agoricWsProvider: WebSocket;
 
 // Holds the last visited offer ID
 export let lastOfferId: string | null;
+
+const clientMarshaller = makeClientMarshaller();
 
 const emptyCurrentRecord = {
     purses: [],
@@ -232,12 +236,12 @@ export const queryParams = async () => {
         const chainPolicyCapDataStr = values.map((s: any) => JSON.parse(s));
         capDataStr = await vstorage.readLatest("published.fastUsdc")
         const settlementAddressCapDataStr = JSON.parse(JSON.parse(capDataStr).value).values.map((s: any) => JSON.parse(s))
-        let chainPolicy = JSON.parse(chainPolicyCapDataStr.at(-1).body.split("#")[1])
-        chainPolicy.maxAmountPerBlockWindow = parseInt(chainPolicy.maxAmountPerBlockWindow, 10)
-        return {
+        let chainPolicy = clientMarshaller.fromCapData(chainPolicyCapDataStr.at(-1)) as VStorage
+        let policy = {
             chainPolicy: chainPolicy as VStorage,
             settlementAccount: settlementAddressCapDataStr.at(-1).settlementAccount
         }
+        return policy;
     } catch (err) {
         logger.error(`Failed to parse CapData for queryParams: ${err}`);
         return null

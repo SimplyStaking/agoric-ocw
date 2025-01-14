@@ -66,14 +66,18 @@ export type AgoricRPCStatus = {
 
 export type TxThreshold = { maxAmount: number; confirmations: number };
 
+export type RateLimits = {
+  tx: number;
+  blockWindow: number;
+  blockWindowSize: number;
+}
+
 export type ChainPolicy = {
   attenuatedCttpBridgeAddresses: Hex[];
   cctpTokenMessengerAddress: string;
   chainId: number;
   confirmations: number;
-  tx: number;
-  blockWindow: number;
-  blockWindowSize: number;
+  rateLimits: RateLimits,
   txThresholds: TxThreshold[]
 };
 
@@ -81,6 +85,7 @@ export type VStorage = {
   chainPolicies: {
     [chainName: string]: ChainPolicy;
   };
+  eventFilter: string,
   nobleAgoricChannelId: string;
   nobleDomainId: number;
 };

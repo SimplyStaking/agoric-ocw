@@ -102,12 +102,12 @@ export const setRpcBlockHeight = (network: string, height: number): void => {
 export const incrementEventsCount = async (network: string) => {
     eventsCount.inc({ network });
     const metric = await eventsCount.get();
-    let values = metric.values;
+    const values = metric.values;
 
-    for (let value in values) {
-        let labelNetwork = String(values[value].labels.network)
+    for (const value in values) {
+        const labelNetwork = String(values[value].labels.network)
         if (labelNetwork == network) {
-            let val = values[value].value
+            const val = values[value].value
             await setGaugeValue("eventsCount", network, val)
         }
     }
@@ -121,12 +121,12 @@ export const incrementEventsCount = async (network: string) => {
 export const incrementTotalAmount = async (network: string, amount: number) => {
     totalAmount.inc({ network }, amount);
     const metric = await totalAmount.get();
-    let values = metric.values;
+    const values = metric.values;
 
-    for (let value in values) {
-        let labelNetwork = String(values[value].labels.network)
+    for (const value in values) {
+        const labelNetwork = String(values[value].labels.network)
         if (labelNetwork == network) {
-            let val = values[value].value
+            const val = values[value].value
             await setGaugeValue("totalAmount", network, val)
         }
     }
@@ -139,12 +139,12 @@ export const incrementTotalAmount = async (network: string, amount: number) => {
 export const incrementRevertedCount = async (network: string) => {
     revertedTxsCount.inc({ network });
     const metric = await revertedTxsCount.get();
-    let values = metric.values;
+    const values = metric.values;
 
-    for (let value in values) {
-        let labelNetwork = String(values[value].labels.network)
+    for (const value in values) {
+        const labelNetwork = String(values[value].labels.network)
         if (labelNetwork == network) {
-            let val = values[value].value
+            const val = values[value].value
             await setGaugeValue("revertedTxsCount", network, val)
         }
     }
@@ -165,17 +165,17 @@ export const initialiseMetricsForNetwork = (network: string): void => {
  * Function to initialise gauges on startup
  */
 export const intialiseGauges = async () => {
-    let gauges = await getAllGauges()
+    const gauges = await getAllGauges()
     // If no gauges found in DB
     if (!gauges) {
-        for (let chain of chainConfig) {
+        for (const chain of chainConfig) {
             initialiseMetricsForNetwork(chain.name)
         }
     }
     // Else get them from DB and set them
     else {
-        for (let chain of chainConfig) {
-            let network = chain.name
+        for (const chain of chainConfig) {
+            const network = chain.name
             eventsCount.set({ network }, gauges["eventsCount"] ? gauges["eventsCount"][network] ? gauges["eventsCount"][network] : 0 : 0);
             totalAmount.set({ network }, gauges["totalAmount"] ? gauges["totalAmount"][network] ? gauges["totalAmount"][network] : 0 : 0);
             revertedTxsCount.set({ network }, gauges["revertedTxsCount"] ? gauges["revertedTxsCount"][network] ? gauges["revertedTxsCount"][network] : 0 : 0);

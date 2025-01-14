@@ -20,14 +20,14 @@ export async function backfillChain(
   fromBlock: number,
 ) {
 
-  let wsProvider = getWsProvider(chain)
+  const wsProvider = getWsProvider(chain)
   const contract = new ethers.Contract(chain.contractAddress, EVENT_ABI, wsProvider);
 
   logger.debug(`Getting event logs on ${chain.name} from block ${fromBlock}`)
 
   // Get logs for the 'DepositForBurn' event from the specified block onwards
   try {
-    let latestBlockNumber = await wsProvider.getBlockNumber();
+    const latestBlockNumber = await wsProvider.getBlockNumber();
 
     const logs = await wsProvider.getLogs({
       fromBlock, // Starting block number
@@ -85,7 +85,7 @@ export async function backfillChain(
     await setHeightForChain(chain.name, latestBlockNumber);
 
     // Get totals for latest blocks
-    let blockTotals = await getBlockSums(chain.name, latestBlockNumber, vStoragePolicy.chainPolicies[chain.name].blockWindowSize)
+    const blockTotals = await getBlockSums(chain.name, latestBlockNumber, vStoragePolicy.chainPolicies[chain.name].rateLimits.blockWindowSize)
     setChainEntries(chain.name, blockTotals.blockSums)
 
   } catch (err) {
@@ -98,12 +98,12 @@ export async function backfillChain(
  */
 export async function backfill() {
   // Get latest heights
-  let heights = await getAllHeights() || null
-  for (let chain in heights) {
+  const heights = await getAllHeights() || null
+  for (const chain in heights) {
     // If chain is found in agoric policy
     if (vStoragePolicy.chainPolicies[chain]) {
       logger.info(`Backfilling for ${chain}`)
-      let chainConfig = getChainFromConfig(chain)
+      const chainConfig = getChainFromConfig(chain)
       if (chainConfig) {
         await backfillChain(chainConfig, heights[chain])
       }

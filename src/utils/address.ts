@@ -1,4 +1,6 @@
+import { decodeAddressHook } from '@agoric/cosmic-proto/address-hooks.js';
 import { bech32 } from 'bech32';
+import { logger } from './logger';
 
 /**
  * Convert a Bech32 address to a padded hexadecimal format
@@ -40,4 +42,23 @@ export function decodeToNoble(encodedAddress: string): string {
   // Re-encode as Bech32
   const words = bech32.toWords(rawAddress);
   return bech32.encode('noble', words);
+}
+
+/**
+ * Fuction to decode address
+ * @param string address to decode
+ * @returns decoded address
+ */
+export function decodeAddress(address: string) {
+  try {
+    const decoded = decodeAddressHook(address);
+    if (!decoded.query || !decoded.query.EUD) {
+      logger.debug(`No EUD parameter for agoric address ${address}`);
+      return null;
+    }
+    return decoded
+  } catch (e) {
+    logger.debug(`Could not decode address hook for agoric address ${address}`);
+    return null;
+  }
 }
