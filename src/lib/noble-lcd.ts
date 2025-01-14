@@ -4,10 +4,9 @@ import { EXPECTED_NOBLE_CHANNEL_ID, PROD, TESTING_NOBLE_FA, TESTING_NOBLE_FA_ADD
 import { incrementEventsCount, incrementTotalAmount, setRpcBlockHeight } from '../metrics';
 import type { ForwardingAccount, NobleAddress, QueryAccountError, QueryAccountResponse } from '../types';
 import { logger } from '../utils/logger';
-import { vStoragePolicy } from './agoric';
+import { decodeAddress, vStoragePolicy } from './agoric';
 import { addNobleAccount, getNobleAccount, getUnknownFATransactionsSince, removeTransaction, updateTransactionRecipientandChannel } from './db';
 import WebSocket from 'ws';
-import { decodeAddress } from '@src/utils/address';
 
 // Holds the Noble WS Provider
 export let nobleWsProvider: WebSocket;
@@ -90,7 +89,7 @@ export const getForwardingAccount =
         return null;
       }
 
-      let expectedChannelId = ENV == PROD ? vStoragePolicy.nobleAgoricChannelId : EXPECTED_NOBLE_CHANNEL_ID
+      const expectedChannelId = ENV == PROD ? vStoragePolicy.nobleAgoricChannelId : EXPECTED_NOBLE_CHANNEL_ID
       // we are only interested in agoric plus address accounts
       if (
         (!accountDetails.recipient.startsWith('agoric') &&
@@ -108,8 +107,7 @@ export const getForwardingAccount =
       }
 
       // Check for EUD parameter
-      let decodedAddress = decodeAddress(accountDetails.recipient)
-
+      const decodedAddress = decodeAddress(accountDetails.recipient)
       if (!decodedAddress) {
         await addNobleAccount({
           nobleAddress: address,
@@ -177,21 +175,21 @@ export function createNobleWebSocket() {
 
   // Listen for new blocks
   nobleWsProvider.on('message', async (message: string) => {
-    let msgJSON = JSON.parse(message)
+    const msgJSON = JSON.parse(message)
     if (msgJSON.result.data) {
-      let newHeight = Number(msgJSON.result.data.value.block.header.height)
+      const newHeight = Number(msgJSON.result.data.value.block.header.height)
       setRpcBlockHeight("Noble", newHeight)
       logger.debug(`New block from Noble: ${newHeight}`);
 
       // Get unknown transactions and query their forwarding address
-      let since = Date.now() - (MINUTES_HOLDING_UNKNOWN_FA * 60 * 1000)
-      let txs = await getUnknownFATransactionsSince(since)
-      let nobleClient = getNobleLCDClient()
+      const since = Date.now() - (MINUTES_HOLDING_UNKNOWN_FA * 60 * 1000)
+      const txs = await getUnknownFATransactionsSince(since)
+      const nobleClient = getNobleLCDClient()
 
       // For each transaction query the noble forwarding account
-      for (let tx of txs) {
-        let forwardingAddress = tx.forwardingAddress
-        let forwardingAccount = await getForwardingAccount(nobleClient, forwardingAddress as NobleAddress)
+      for (const tx of txs) {
+        const forwardingAddress = tx.forwardingAddress
+        const forwardingAccount = await getForwardingAccount(nobleClient, forwardingAddress as NobleAddress)
 
         // If null, discard the tx because it is not an agoric fa
         if (!forwardingAccount) {

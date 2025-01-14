@@ -188,12 +188,12 @@ export const intialiseGauges = async () => {
  */
 export const saveRPCStates = async () => {
     // Get rpc states
-    let rpcStates = await rpcBlockHeight.get()
-    let rpcStatesValues = rpcStates.values;
+    const rpcStates = await rpcBlockHeight.get()
+    const rpcStatesValues = rpcStates.values;
 
-    for (let value in rpcStatesValues) {
-        let network = String(rpcStatesValues[value].labels.network)
-        let height = rpcStatesValues[value].value
+    for (const value in rpcStatesValues) {
+        const network = String(rpcStatesValues[value].labels.network)
+        const height = rpcStatesValues[value].value
         logger.info(`Saving ${network} RPC state (${height})`)
         await setHeightForChain(network, height)
     }
@@ -232,11 +232,11 @@ export const setCurrentBlockRangeAmount = async (network: string, amount: number
  * @returns the current block range amount for the given network
  */
 export const getCurrentBlockRangeAmount = async (network: string) => {
-    let currentBlockRangeAmounts = await currentBlockRangeAmount.get()
-    let currentBlockRangeValues = currentBlockRangeAmounts.values;
+    const currentBlockRangeAmounts = await currentBlockRangeAmount.get()
+    const currentBlockRangeValues = currentBlockRangeAmounts.values;
 
-    for (let value in currentBlockRangeValues) {
-        let label = String(currentBlockRangeValues[value].labels.network)
+    for (const value in currentBlockRangeValues) {
+        const label = String(currentBlockRangeValues[value].labels.network)
         if (label == network) {
             return Number(currentBlockRangeValues[value].value)
         }

@@ -1,6 +1,6 @@
 require('dotenv').config({ path: '.env.test' });
 
-import { decodeAddressHook } from "@agoric/cosmic-proto/address-hooks.js";
+import { decodeAddress } from "@src/lib/agoric";
 import { EXPECTED_NOBLE_CHANNEL_ID, TESTING_NOBLE_FA_RECIPIENT, TESTING_SETTLEMENT_ADDR } from "../../src/constants";
 import { processCCTPBurnEventLog } from "../../src/processor";
 import { TransactionStatus } from "../../src/types";
@@ -20,9 +20,11 @@ jest.mock('./../../src/lib/agoric', () => ({
         attenuatedCttpBridgeAddresses: ["0x19330d10D9Cc8751218eaf51E8885D058642E08A"],
         chainId: 1,
         nobleContractAddress: "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
-        tx: 1000,
-        blockWindow: 10000,
-        blockWindowSize: 10,
+        rateLimits: {
+          tx: 1000,
+          blockWindow: 10000,
+          blockWindowSize: 10,
+        }
       }
     }, nobleAgoricChannelId: 'channel-2a', nobleDomainId: 4
   },
@@ -31,6 +33,10 @@ jest.mock('./../../src/lib/agoric', () => ({
   getInvitation: jest.fn(),
   createAgoricWebSocket: jest.fn(),
   settlementAccount: TESTING_SETTLEMENT_ADDR,
+  decodeAddress: jest.fn().mockReturnValue({
+    baseAddress: 'agoric139rzngvjxghadprms96tk7fxssqwrhlpmz48gvwqxv5djwaz7fyqcx9tq9',
+    query: { EUD: 'osmo183dejcnmkka5dzcu9xw6mywq0p2m5peks28men' }
+  })
 }));
 jest.mock('./../../src/lib/db', () => ({
   addTransaction: jest.fn(),
@@ -118,13 +124,13 @@ describe('processor Tests', () => {
   // updateTransactionStatus.mockResolvedValue(null)
 
   test('processes event for noble base account without reporting', async () => {
-    let evidence = await processCCTPBurnEventLog(DEPOSIT_FOR_BURN_EVENTS['noble-base-acct'], "Ethereum", fakeNobleLCD);
+    const evidence = await processCCTPBurnEventLog(DEPOSIT_FOR_BURN_EVENTS['noble-base-acct'], "Ethereum", fakeNobleLCD);
     // Should not report non-forwarding accounts
     expect(evidence).toBe(null);
   });
 
   test('processes event for dydx forwarding account without reporting', async () => {
-    let evidence = await processCCTPBurnEventLog(DEPOSIT_FOR_BURN_EVENTS['dydx-forwarding'], "Ethereum", fakeNobleLCD);
+    const evidence = await processCCTPBurnEventLog(DEPOSIT_FOR_BURN_EVENTS['dydx-forwarding'], "Ethereum", fakeNobleLCD);
     // Should not report non-Agoric forwarding accounts
     expect(evidence).toBe(null);
   });
@@ -135,7 +141,7 @@ describe('processor Tests', () => {
       destinationDomain: 3
     };
 
-    let evidence = await processCCTPBurnEventLog(nonNobleEvent, "Ethereum", fakeNobleLCD);
+    const evidence = await processCCTPBurnEventLog(nonNobleEvent, "Ethereum", fakeNobleLCD);
 
     // Should not report for non-Noble domains
     expect(evidence).toBe(null);
@@ -147,7 +153,7 @@ describe('processor Tests', () => {
       sender: "0x00000"
     };
 
-    let evidence = await processCCTPBurnEventLog(nonNobleSender, "Ethereum", fakeNobleLCD);
+    const evidence = await processCCTPBurnEventLog(nonNobleSender, "Ethereum", fakeNobleLCD);
 
     // Should not report for non-Noble domains
     expect(evidence).toBe(null);
@@ -160,14 +166,14 @@ describe('processor Tests', () => {
       amount: 100000n
     };
 
-    let evidence = await processCCTPBurnEventLog(nonNobleSender, "Ethereum", fakeNobleLCD);
+    const evidence = await processCCTPBurnEventLog(nonNobleSender, "Ethereum", fakeNobleLCD);
 
     // Should not report for non-Noble domains
     expect(evidence).toBe(null);
   });
 
   test('processes event for agoric plus address with reporting', async () => {
-    let evidence = await processCCTPBurnEventLog(DEPOSIT_FOR_BURN_EVENTS['agoric-forwarding-acct'], "Ethereum", fakeNobleLCD);
+    const evidence = await processCCTPBurnEventLog(DEPOSIT_FOR_BURN_EVENTS['agoric-forwarding-acct'], "Ethereum", fakeNobleLCD);
     const expectedEvidence = {
       amount: 150000000n,
       status: TransactionStatus.CONFIRMED,
@@ -179,7 +185,7 @@ describe('processor Tests', () => {
       forwardingAddress: SCENARIOS.AGORIC_PLUS_ADDR,
       forwardingChannel: EXPECTED_NOBLE_CHANNEL_ID,
       recipientAddress:
-        'agoric10rchpz2x9xseyv3066z8hqt5hdujdpqqu807rk92wscuqvegmya69ujg8az423padaek6me38qekget2vdhx66mtvy6kg7nrw5uhsaekd4uhwufswqex6dtsv44hxv3cd4jkuqpqctwlyg',
+        'agoric10rchphk2al7nk87vwfyu87pjxwyxnw7aw98hkv4fdd2heurszf8n06wy8az423padaek6me38qekget2vdhx66mtvy6kg7nrw5uhsaekd4uhwufswqex6dtsv44hxv3cd4jkuqpq54ew3p',
       sender: "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
       txHash:
         '0xc81bc6105b60a234c7c50ac17816ebcd5561d366df8bf3be59ff387552761702',

@@ -302,7 +302,7 @@ export const updateSubmissionStatus = async (
     submissionStatus: SubmissionStatus,
     timeoutHeight?: number
 ): Promise<ISubmission | null> => {
-    let newValue: any = {
+    const newValue: any = {
         submissionStatus
     }
 
@@ -381,7 +381,7 @@ export const removeTransaction = async (_id: string) => {
  */
 export const getAllGauges = async () => {
     const result = await State.findOne({ _id: 'node-state' }, { gauges: 1, _id: 0 });
-    let jsonResult = result?.toJSON()
+    const jsonResult = result?.toJSON()
     return jsonResult ? jsonResult.gauges : null;
 };
 
@@ -390,8 +390,8 @@ export const getAllGauges = async () => {
  * @returns {Promise<Object | null>} - The heights object or null if not found.
  */
 export const getAllHeights = async (): Promise<Record<string, number> | null> => {
-    let result = await State.findOne({ _id: 'node-state' }, { lastHeights: 1, _id: 0 });
-    let jsonRes = result?.toJSON()
+    const result = await State.findOne({ _id: 'node-state' }, { lastHeights: 1, _id: 0 });
+    const jsonRes = result?.toJSON()
     return jsonRes ? jsonRes.lastHeights : null;
 };
 
@@ -417,8 +417,8 @@ export const setHeightForChain = async (chain: string, height: number): Promise<
  * @returns {Promis<string>} The last visited offer Id
  */
 export const getLastOfferId = async () => {
-    let result = await State.findOne({ _id: 'node-state' }, { lastOfferId: 1, _id: 0 });
-    let jsonRes = result?.toJSON()
+    const result = await State.findOne({ _id: 'node-state' }, { lastOfferId: 1, _id: 0 });
+    const jsonRes = result?.toJSON()
     return jsonRes ? jsonRes.lastOfferId : null;
 };
 
