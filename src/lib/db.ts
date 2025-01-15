@@ -1,9 +1,10 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import { DB_URL } from '../config/config';  // Import your DB connection URL from config
-import { SubmissionStatus, TransactionStatus } from '../types';
+import { ChainBlockRangeAmountState, ForwardingAccount, SubmissionStatus, TransactionStatus } from '../types';
 import { logger } from '../utils/logger';
 import { vStoragePolicy } from './agoric';
 import { UNKNOWN_FA } from '../constants';
+import { Hex } from 'viem';
 
 let isConnected = false; // Variable to track the connection status
 
@@ -39,7 +40,10 @@ interface ITransactionDetails {
     forwardingAddress: string;
     forwardingChannel: string;
     blockHash: string;
+    risksIdentified: string[];
     blockTimestamp: number;
+    confirmationBlockNumber: number;
+    sender: Hex,
     created: number;
 }
 
@@ -57,6 +61,12 @@ interface IRemovedTX extends Document {
     transactionHash: string;
     chain: string;
     created: Number;
+}
+
+interface INobleAccount {
+    nobleAddress: string;
+    account?: ForwardingAccount,
+    isAgoricForwardingAcct: boolean;
 }
 
 export interface GaugesState {
@@ -87,6 +97,9 @@ const transactionSchema = new Schema<ITransaction>({
     forwardingChannel: { type: String, required: true },
     blockHash: { type: String, required: true },
     blockTimestamp: { type: Number, required: true },
+    risksIdentified: { type: [String], required: true },
+    confirmationBlockNumber: { type: Number, required: true },
+    sender: { type: String, required: true },
     created: { type: Number, required: true },
 });
 
@@ -132,10 +145,38 @@ const stateSchema: Schema = new Schema({
     updatedAt: { type: Date, default: Date.now },
 });
 
+const baseAccountSchema = new Schema({
+    address: { type: String, required: true },
+    pub_key: {
+        type: {
+            '@type': { type: String, required: true },
+            key: { type: String, required: true },
+        },
+        required: false,
+    },
+    account_number: { type: String, required: true },
+    sequence: { type: String, required: true },
+});
+
+const forwardingAccountSchema = new Schema<ForwardingAccount>({
+    base_account: { type: baseAccountSchema, required: true },
+    channel: { type: String, required: true },
+    recipient: { type: String, required: true },
+    created_at: { type: String, required: true },
+});
+
+const nobleAccountSchema = new Schema<INobleAccount>({
+    nobleAddress: { type: String, required: true, unique: true },
+    account: { type: forwardingAccountSchema },
+    isAgoricForwardingAcct: { type: Boolean, required: true },
+});
+
+
 export const Transaction = mongoose.model<ITransaction>('Transaction', transactionSchema);
 export const Submission = mongoose.model<ISubmission>('Submission', submissionSchema);
 export const RemovedTX = mongoose.model<IRemovedTX>('RemovedTX', removedTXSchema);
 const State = mongoose.model<IState>('State', stateSchema);
+const NobleAccount = mongoose.model<INobleAccount>('NobleAccount', nobleAccountSchema);
 
 /**
  * Adds a new transaction to the database.
@@ -261,7 +302,7 @@ export const updateSubmissionStatus = async (
     submissionStatus: SubmissionStatus,
     timeoutHeight?: number
 ): Promise<ISubmission | null> => {
-    let newValue: any = {
+    const newValue: any = {
         submissionStatus
     }
 
@@ -340,7 +381,7 @@ export const removeTransaction = async (_id: string) => {
  */
 export const getAllGauges = async () => {
     const result = await State.findOne({ _id: 'node-state' }, { gauges: 1, _id: 0 });
-    let jsonResult = result?.toJSON()
+    const jsonResult = result?.toJSON()
     return jsonResult ? jsonResult.gauges : null;
 };
 
@@ -349,8 +390,8 @@ export const getAllGauges = async () => {
  * @returns {Promise<Object | null>} - The heights object or null if not found.
  */
 export const getAllHeights = async (): Promise<Record<string, number> | null> => {
-    let result = await State.findOne({ _id: 'node-state' }, { lastHeights: 1, _id: 0 });
-    let jsonRes = result?.toJSON()
+    const result = await State.findOne({ _id: 'node-state' }, { lastHeights: 1, _id: 0 });
+    const jsonRes = result?.toJSON()
     return jsonRes ? jsonRes.lastHeights : null;
 };
 
@@ -376,8 +417,8 @@ export const setHeightForChain = async (chain: string, height: number): Promise<
  * @returns {Promis<string>} The last visited offer Id
  */
 export const getLastOfferId = async () => {
-    let result = await State.findOne({ _id: 'node-state' }, { lastOfferId: 1, _id: 0 });
-    let jsonRes = result?.toJSON()
+    const result = await State.findOne({ _id: 'node-state' }, { lastOfferId: 1, _id: 0 });
+    const jsonRes = result?.toJSON()
     return jsonRes ? jsonRes.lastOfferId : null;
 };
 
@@ -426,7 +467,8 @@ export const getTransactionsToBeSentForChain = async (chain: string, currentHeig
     const transactions = await Transaction.aggregate([
         {
             $match: {
-                chain: chain, blockNumber: { $lte: currentHeight - vStoragePolicy.chainPolicies[chain].confirmations }
+                chain: chain,
+                blockNumber: { $lte: currentHeight - vStoragePolicy.chainPolicies[chain].confirmations },
             },
         },
         {
@@ -477,6 +519,118 @@ export const getExpiredTransactionsWithInflightStatus = async (maxTimeoutHeight:
     ]);
 
     return transactions;
+};
+
+/**
+ * Adds a new noble account to the database.
+ * @param {INobleAccount} data - Noble account details to add.
+ * @returns {Promise<INobleAccount>} - The newly created noble account.
+ */
+export const addNobleAccount = async (data: INobleAccount): Promise<INobleAccount> => {
+    const nobleAccount = new NobleAccount(data);
+    return await nobleAccount.save();
+};
+
+/**
+ * Function to get noble account
+ * @param {string} nobleAddress - The noble address to search for.
+ * @returns {Promise<INobleAccount | null>} - The existing noble account or null.
+ */
+export const getNobleAccount = async (
+    nobleAddress: string,
+): Promise<INobleAccount | null> => {
+    return await NobleAccount.findOne({ nobleAddress });
+};
+
+/**
+ * Sums the transaction amounts for a specific chain starting from a given block number.
+ *
+ * @param collection - MongoDB collection containing transaction details.
+ * @param chain - The blockchain name to filter transactions (e.g., "Ethereum").
+ * @param blockNumber - The minimum block number to consider for the sum.
+ * @returns The total transaction amount for the specified chain and block range.
+ */
+export const sumTransactionAmounts = async (
+    chain: string,
+    blockNumber: number
+): Promise<number> => {
+    // Perform an aggregation query to calculate the sum of amounts
+    const result = await Transaction.aggregate<{ totalAmount: number }>([
+        // Match stage: Filter transactions for the specified chain and blockNumber >= given value
+        {
+            $match: {
+                chain: chain, // Filter by the blockchain name
+                blockNumber: { $gte: blockNumber }, // Only include transactions from this block onward
+                risksIdentified: { $size: 0 } // With no risks
+            },
+        },
+        // Group stage: Group all matching transactions and calculate the total sum of the "amount" field
+        {
+            $group: {
+                _id: null, // Use null as _id since we don't need to group by a specific field
+                totalAmount: { $sum: "$amount" }, // Sum up the "amount" field for all matching documents
+            },
+        },
+    ]);
+
+    // Return the calculated total amount if there are results, otherwise return 0
+    return result.length > 0 ? result[0].totalAmount : 0;
+}
+
+/**
+ * Returns the sums of amounts for a specific block and the previous `x` blocks in the range.
+ * If any block in the range is missing, the function returns an empty array.
+ * 
+ * @param chain - The blockchain name (e.g., Ethereum, Polygon).
+ * @param blockNumber - The starting block number for the range.
+ * @param blockRange - The number of blocks to include before the given block (including the blockNumber).
+ * @returns An object containing `blockSums` (array of block sums) and `totalSum` (sum of all block sums).
+ */
+export const getBlockSums = async (
+    chain: string,
+    blockNumber: number,
+    blockRange: number
+) => {
+    // Define the range of blocks to query
+    const blocks = Array.from({ length: blockRange }, (_, i) => blockNumber - i).reverse();
+
+    // Perform an aggregation query to get sums for each block in the range
+    const result = await Transaction.aggregate<ChainBlockRangeAmountState>([
+        {
+            $match: {
+                chain: chain,
+                blockNumber: { $in: blocks },
+                risksIdentified: { $size: 0 }, // Only include transactions with no risks
+            },
+        },
+        {
+            $group: {
+                _id: "$blockNumber", // Group by blockNumber
+                sum: { $sum: "$amount" }, // Sum up the amounts for each block
+            },
+        },
+        {
+            $project: {
+                _id: 0, // Exclude _id field from the result
+                block: "$_id",
+                sum: 1,
+            },
+        },
+    ]);
+
+    // Create a map for quick lookups
+    const resultMap = new Map(result.map((entry) => [entry.block, entry.sum]));
+
+    // Ensure all blocks in the range exist, returning 0 if any are missing
+    const blockSums: ChainBlockRangeAmountState[] = blocks.map((block) => ({
+        block,
+        sum: resultMap.get(block) || 0,
+    }));
+
+    // Calculate the total sum
+    const totalSum = blockSums.reduce((acc, entry) => acc + entry.sum, 0);
+
+    return { blockSums, totalSum };
 };
 
 // Initialize DB connection on app start

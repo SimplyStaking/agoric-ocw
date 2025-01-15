@@ -69,6 +69,15 @@ const lastOfferSubmitted = new Gauge({
 });
 
 /**
+ * Gauge metric to track the cumulated current block range tx amount
+ */
+const currentBlockRangeAmount = new Gauge({
+    name: 'current_block_range_amount',
+    help: 'Shows the sum of the current block range tx amounts',
+    labelNames: ['network'],
+});
+
+/**
  * Sets the rpcAlive metric for a specific network.
  * @param network - The name of the network.
  * @param isAlive - Boolean value indicating if the RPC is alive (true) or dead (false).
@@ -93,12 +102,12 @@ export const setRpcBlockHeight = (network: string, height: number): void => {
 export const incrementEventsCount = async (network: string) => {
     eventsCount.inc({ network });
     const metric = await eventsCount.get();
-    let values = metric.values;
+    const values = metric.values;
 
-    for (let value in values) {
-        let labelNetwork = String(values[value].labels.network)
+    for (const value in values) {
+        const labelNetwork = String(values[value].labels.network)
         if (labelNetwork == network) {
-            let val = values[value].value
+            const val = values[value].value
             await setGaugeValue("eventsCount", network, val)
         }
     }
@@ -112,12 +121,12 @@ export const incrementEventsCount = async (network: string) => {
 export const incrementTotalAmount = async (network: string, amount: number) => {
     totalAmount.inc({ network }, amount);
     const metric = await totalAmount.get();
-    let values = metric.values;
+    const values = metric.values;
 
-    for (let value in values) {
-        let labelNetwork = String(values[value].labels.network)
+    for (const value in values) {
+        const labelNetwork = String(values[value].labels.network)
         if (labelNetwork == network) {
-            let val = values[value].value
+            const val = values[value].value
             await setGaugeValue("totalAmount", network, val)
         }
     }
@@ -130,12 +139,12 @@ export const incrementTotalAmount = async (network: string, amount: number) => {
 export const incrementRevertedCount = async (network: string) => {
     revertedTxsCount.inc({ network });
     const metric = await revertedTxsCount.get();
-    let values = metric.values;
+    const values = metric.values;
 
-    for (let value in values) {
-        let labelNetwork = String(values[value].labels.network)
+    for (const value in values) {
+        const labelNetwork = String(values[value].labels.network)
         if (labelNetwork == network) {
-            let val = values[value].value
+            const val = values[value].value
             await setGaugeValue("revertedTxsCount", network, val)
         }
     }
@@ -156,17 +165,17 @@ export const initialiseMetricsForNetwork = (network: string): void => {
  * Function to initialise gauges on startup
  */
 export const intialiseGauges = async () => {
-    let gauges = await getAllGauges()
+    const gauges = await getAllGauges()
     // If no gauges found in DB
     if (!gauges) {
-        for (let chain of chainConfig) {
+        for (const chain of chainConfig) {
             initialiseMetricsForNetwork(chain.name)
         }
     }
     // Else get them from DB and set them
     else {
-        for (let chain of chainConfig) {
-            let network = chain.name
+        for (const chain of chainConfig) {
+            const network = chain.name
             eventsCount.set({ network }, gauges["eventsCount"] ? gauges["eventsCount"][network] ? gauges["eventsCount"][network] : 0 : 0);
             totalAmount.set({ network }, gauges["totalAmount"] ? gauges["totalAmount"][network] ? gauges["totalAmount"][network] : 0 : 0);
             revertedTxsCount.set({ network }, gauges["revertedTxsCount"] ? gauges["revertedTxsCount"][network] ? gauges["revertedTxsCount"][network] : 0 : 0);
@@ -179,12 +188,12 @@ export const intialiseGauges = async () => {
  */
 export const saveRPCStates = async () => {
     // Get rpc states
-    let rpcStates = await rpcBlockHeight.get()
-    let rpcStatesValues = rpcStates.values;
+    const rpcStates = await rpcBlockHeight.get()
+    const rpcStatesValues = rpcStates.values;
 
-    for (let value in rpcStatesValues) {
-        let network = String(rpcStatesValues[value].labels.network)
-        let height = rpcStatesValues[value].value
+    for (const value in rpcStatesValues) {
+        const network = String(rpcStatesValues[value].labels.network)
+        const height = rpcStatesValues[value].value
         logger.info(`Saving ${network} RPC state (${height})`)
         await setHeightForChain(network, height)
     }
@@ -206,6 +215,34 @@ export const setAgoricActiveRpc = (endpoint: string, isActive: boolean): void =>
  */
 export const setWatcherLastOfferId = (watcher: string, offerId: number): void => {
     lastOfferSubmitted.set({ watcher }, offerId);
+};
+
+/**
+ * Sets the current block range summation for a network
+ * @param network - The name of the network.
+ * @param amount - The amount to set the total to.
+ */
+export const setCurrentBlockRangeAmount = async (network: string, amount: number) => {
+    currentBlockRangeAmount.set({ network }, amount);
+};
+
+/**
+ * Gets the current block range amount for a network
+ * @param network - The name of the network.
+ * @returns the current block range amount for the given network
+ */
+export const getCurrentBlockRangeAmount = async (network: string) => {
+    const currentBlockRangeAmounts = await currentBlockRangeAmount.get()
+    const currentBlockRangeValues = currentBlockRangeAmounts.values;
+
+    for (const value in currentBlockRangeValues) {
+        const label = String(currentBlockRangeValues[value].labels.network)
+        if (label == network) {
+            return Number(currentBlockRangeValues[value].value)
+        }
+    }
+
+    return 0;
 };
 
 // Exports the 'register' object for exposing metrics in index.js or other modules

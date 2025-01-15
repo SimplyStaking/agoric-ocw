@@ -1,4 +1,6 @@
+import { decodeAddressHook } from '@agoric/cosmic-proto/address-hooks.js';
 import { bech32 } from 'bech32';
+import { logger } from './logger';
 
 /**
  * Convert a Bech32 address to a padded hexadecimal format

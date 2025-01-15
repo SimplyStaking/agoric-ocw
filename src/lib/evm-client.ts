@@ -55,7 +55,7 @@ function createWebSocket(chain: ChainConfig) {
  */
 const makeWebSocketProvider = (chain: ChainConfig) => {
   // Setup WebSocket provider
-  let ws = createWebSocket(chain)
+  const ws = createWebSocket(chain)
   return new WebSocketProvider(ws);
 }
 

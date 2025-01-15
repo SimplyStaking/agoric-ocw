@@ -109,6 +109,11 @@ export const EVENT_ABI = [
 ];
 
 /**
+ * Holds the Agoric LCD URL (Port 1317)
+ */
+export const AGORIC_LCD_URL = process.env.AGORIC_LCD_URL || 'http://127.0.0.1:1317';
+
+/**
  * A list of agoric RPCs, comma seperated
  */
 export const AGORIC_RPCS = process.env.AGORIC_RPCS?.split(",") || ['https://agoric-rpc.polkachu.com'];

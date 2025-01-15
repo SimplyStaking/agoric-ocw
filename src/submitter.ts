@@ -3,16 +3,18 @@ import { ACTIVE_AGORIC_RPC_INDEX, AGORIC_RPCS, AGORIC_RPC_CHECK_INTERVAL, TX_TIM
 import { execSwingsetTransaction, getLatestBlockHeight, outputAction, watcherInvitation } from "./lib/agoric";
 import { addSubmission, getSubmission, updateSubmissionStatus } from "./lib/db";
 import { setAgoricActiveRpc } from "./metrics";
-import { AgoricOCWOfferTemplate, AgoricSubmissionResponse, CCTPTxEvidence, SubmissionStatus, TransactionStatus } from "./types";
+import { AgoricOCWOfferTemplate, AgoricRPCStatus, AgoricSubmissionResponse, CCTPTxEvidence, SubmissionStatus, TransactionStatus } from "./types";
 import { logger } from "./utils/logger";
+import { incrementWatcherAccountSequenceNumber, setWatcherAccountSequenceNumber, watcherAccount } from "./state";
 
 /**
+ * Submits evidence to Agoric
  * @param evidence evidence to submit
+ * @param risksIdentified an array of risks identified
+ * @param agoricRpcStatus the Agoric RPC status
  */
-export async function submitToAgoric(evidence: CCTPTxEvidence) {
+export async function submitToAgoric(evidence: CCTPTxEvidence, risksIdentified: string[], agoricRpcStatus: AgoricRPCStatus) {
 
-    // Get latest Agoric block
-    let agoricRpcStatus = await getLatestBlockHeight()
     // Check if already submitted
     let submission = await getSubmission(evidence.txHash, evidence.status == TransactionStatus.REORGED)
     if (submission && submission.submissionStatus != SubmissionStatus.CANCELLED && agoricRpcStatus.height < submission.timeoutHeight) {
@@ -30,33 +32,39 @@ export async function submitToAgoric(evidence: CCTPTxEvidence) {
     }
 
     // Create an offer
+    let invArgs: any[] = [{
+        "aux": {
+            "forwardingChannel": evidence.forwardingChannel,
+            "recipientAddress": evidence.recipientAddress
+        },
+        "blockHash": evidence.blockHash,
+        "blockNumber": BigInt(evidence.blockNumber),
+        "chainId": evidence.chainId,
+        "tx": {
+            "amount": BigInt(evidence.amount),
+            "forwardingAddress": evidence.forwardingAddress,
+            "sender": evidence.sender
+        },
+        "txHash": evidence.txHash
+    }]
+    if (risksIdentified.length > 0) {
+        invArgs.push({
+            risksIdentified: risksIdentified
+        })
+    }
+
     let templateOffer: AgoricOCWOfferTemplate = {
         invitationSpec: {
             source: "continuing",
             previousOffer: watcherInvitation,
             invitationMakerName: "SubmitEvidence",
-            invitationArgs: [{
-                "aux": {
-                    "forwardingChannel": evidence.forwardingChannel,
-                    "recipientAddress": evidence.recipientAddress
-                },
-                "blockHash": evidence.blockHash,
-                "blockNumber": BigInt(evidence.blockNumber),
-                "blockTimestamp": BigInt(evidence.blockTimestamp),
-                "chainId": evidence.chainId,
-                "tx": {
-                    "amount": BigInt(evidence.amount),
-                    "forwardingAddress": evidence.forwardingAddress
-                },
-                "txHash": evidence.txHash
-            }
-            ],
+            invitationArgs: invArgs,
         },
         proposal: {},
     };
 
     let keyring = {
-        home: "",
+        home: "/app/.agoric",
         backend: "test",
     };
 
@@ -68,21 +76,15 @@ export async function submitToAgoric(evidence: CCTPTxEvidence) {
         offer,
     });
 
-    let rpcStatus = await getLatestBlockHeight()
-
-    if (rpcStatus.syncing) {
-        logger.warn(`Skipping submission because Agoric RPC is still syncing on height ${rpcStatus.height}`)
-        return
-    }
-
     // Set timeout height
-    let timeoutHeight = rpcStatus.height + TX_TIMEOUT_BLOCKS;
+    let timeoutHeight = agoricRpcStatus.height + TX_TIMEOUT_BLOCKS;
     // Execute tx
     let response: AgoricSubmissionResponse = await execSwingsetTransaction(
-        `wallet-action --allow-spend '${JSON.stringify(offerData)}' --gas-prices=0.01ubld --timeout-height=${timeoutHeight}`,
+        `wallet-action --allow-spend '${JSON.stringify(offerData)}' --gas-prices=0.01ubld --offline --account-number=${watcherAccount.accountNumber} --sequence=${watcherAccount.sequence} --timeout-height=${timeoutHeight}`,
         WATCHER_WALLET_ADDRESS,
         keyring
     );
+    incrementWatcherAccountSequenceNumber();
 
     logger.info("Response: " + JSON.stringify(response))
 
@@ -91,6 +93,21 @@ export async function submitToAgoric(evidence: CCTPTxEvidence) {
         logger.info(`Evidence sent successfully: ${response.txhash}`)
         // Set submission as in flight
         await addSubmission(String(id), evidence.txHash, evidence.status == TransactionStatus.REORGED, SubmissionStatus.INFLIGHT, timeoutHeight)
+    }
+    else {
+        // Get raw log
+        let rawLog = response["raw_log"];
+        // If error contains sequence mismatch
+        if (rawLog.includes("incorrect account sequence")) {
+            // setSequence
+            const regex = /\d+/g;
+            const numbers = rawLog.match(regex);
+            let expectedSequence = Number(numbers![0])
+            logger.debug(`Setting watcher account sequence to ${expectedSequence}`)
+            setWatcherAccountSequenceNumber(expectedSequence)
+            // retry
+            await submitToAgoric(evidence, risksIdentified, agoricRpcStatus)
+        }
     }
 }
 

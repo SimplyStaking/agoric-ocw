@@ -7,10 +7,12 @@ import { ENV, EVENT_ABI, getChainFromConfig } from "./config/config";
 import { ChainConfig, DepositForBurnEvent, Hex, TransactionStatus } from './types';
 import { ContractEventPayload } from 'ethers';
 import { getWsProvider } from './lib/evm-client';
-import { vStoragePolicy } from './lib/agoric';
+import { getLatestBlockHeight, vStoragePolicy } from './lib/agoric';
 import { getAllHeights, getTransactionsToBeSentForChain, setHeightForChain } from './lib/db';
 import { backfillChain } from './backfill';
 import { PROD } from './constants';
+import { addBlockRangeStateEntry, blockRangeAmountState } from './state';
+import { submissionQueue } from './queue';
 
 /**
  * Listens for `DepositForBurn` events and new blocks, and handles reconnections on error.
@@ -58,21 +60,29 @@ export function listen(chain: ChainConfig) {
   wsProvider.on("block", async (blockNumber) => {
     logger.debug(`New block from ${chain.name}: ${blockNumber}`)
 
-    let currentHeights = await getAllHeights()
-    let currentHeight = currentHeights ? currentHeights[chain.name] : 0;
+    const currentHeights = await getAllHeights()
+    const currentHeight = currentHeights ? currentHeights[chain.name] : 0;
 
     // Only perform backfill if the WS subsription skips a hieght
     if (blockNumber > currentHeight + 1) {
       logger.info(`Backfilling for ${chain.name} from ${currentHeight + 1}. This happened because there were missed blocks from WS before block ${blockNumber}.`)
-      let chainConfig = await getChainFromConfig(chain.name)
+      const chainConfig = await getChainFromConfig(chain.name)
       await backfillChain(chainConfig!, currentHeight + 1)
     }
 
-    let transactions = await getTransactionsToBeSentForChain(chain.name, blockNumber)
-    
+    const transactions = await getTransactionsToBeSentForChain(chain.name, blockNumber)
+
+    // At this point, backfilling is complete and transactions are added to the DB
+    // We can set the height here before the submissions just in case submissions is slow to avoid backfilling again if a new block comes in before submissions are finished
+    setRpcAlive(name, true);
+    setRpcBlockHeight(name, blockNumber)
+
+    // Set height in DB
+    await setHeightForChain(chain.name, blockNumber);
+
     // For each transaction to be submitted, submit
-    for (let transaction of transactions) {
-      let evidence = {
+    for (const transaction of transactions) {
+      const evidence = {
         amount: transaction.amount,
         status: TransactionStatus.CONFIRMED,
         blockHash: transaction.blockHash,
@@ -82,16 +92,14 @@ export function listen(chain: ChainConfig) {
         recipientAddress: transaction.recipientAddress,
         txHash: transaction.transactionHash,
         chainId: vStoragePolicy.chainPolicies[transaction.chain].chainId,
+        sender: transaction.sender,
         blockTimestamp: transaction.blockTimestamp
       }
-      await submitToAgoric(evidence)
+      submissionQueue.addToQueue(evidence, transaction.risksIdentified)
     }
 
-    setRpcAlive(name, true);
-    setRpcBlockHeight(name, blockNumber)
-
-    // Set height in DB
-    await setHeightForChain(chain.name, blockNumber);
+    // Update block range state with new block
+    addBlockRangeStateEntry(chain.name, blockNumber, vStoragePolicy.chainPolicies[chain.name].rateLimits.blockWindowSize)
   });
 
 }
@@ -100,8 +108,8 @@ export function listen(chain: ChainConfig) {
  * Initializes listeners for multiple blockchain networks.
  */
 export async function startMultiChainListener() {
-  for (let chain in vStoragePolicy.chainPolicies) {
-    let chainDetails = getChainFromConfig(chain)
+  for (const chain in vStoragePolicy.chainPolicies) {
+    const chainDetails = getChainFromConfig(chain)
     if (chainDetails) {
       chainDetails.contractAddress = ENV == PROD ? vStoragePolicy.chainPolicies[chain].cctpTokenMessengerAddress : chainDetails.contractAddress
       listen(chainDetails)

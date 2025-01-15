@@ -43,6 +43,13 @@ This solution listens to CCTP transactions from other chains, and if the mint re
 
 10. There is an edge case where a WS Provider can skip some blocks. For example, it provides block 101 before block 100, or it skips block 100. For this reason, we added a check to ensure that the new fetched block is the next in line from what we have in DB's state. If not, we perform a backfill on the skipped blocks
 
+11. The solution has 2 rate limits:
+    - A limit per transaction
+    - A limit per sliding block window (obtained from chain policy)
+
+12. The sliding block window limit works in this way:
+    - On startup when backfilling, on every log, we get the transactions up till that block for that window and we place BLOCK_RANGE_LIMIT_EXCEEDED tag on the transaction if the limit is reached. After we finish backfilling, we make another call to the DB to get the latest amount for the block range
+
 ### Testing Environment
 
 This section will explain how to setup a testing environment. 

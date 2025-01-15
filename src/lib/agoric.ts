@@ -13,15 +13,21 @@ import {
 import axios from "axios";
 import { setRpcBlockHeight, setWatcherLastOfferId } from "../metrics";
 import { getExpiredTransactionsWithInflightStatus, getLastOfferId, setLastOfferId, updateSubmissionStatus } from "./db";
-import { submitToAgoric } from "../submitter";
-import { MARSHALLER } from "../constants";
+import { submissionQueue } from "../queue";
+import { MARSHALLER } from "@src/constants";
+import { makeClientMarshaller } from "@src/utils/marshaller";
+import { decodeAddressHook } from "@agoric/cosmic-proto/address-hooks.js";
 
 // Holds the vstorage policy obtained from Agoric
 export let vStoragePolicy: VStorage = {
     chainPolicies: {},
+    eventFilter: '',
     nobleAgoricChannelId: '',
     nobleDomainId: 0
 }
+
+// Holds fast USDC settlement account
+export let settlementAccount: string = ""
 
 // Holds the watcher invitation ID
 export let watcherInvitation: string = ""
@@ -31,6 +37,8 @@ export let agoricWsProvider: WebSocket;
 
 // Holds the last visited offer ID
 export let lastOfferId: string | null;
+
+const clientMarshaller = makeClientMarshaller();
 
 const emptyCurrentRecord = {
     purses: [],
@@ -42,7 +50,7 @@ const emptyCurrentRecord = {
 /**
  * Creates a websocket to be used for the websocket provider for Agoric
  */
-export function createAgoricWebSocket() {
+export const createAgoricWebSocket = () => {
     let url = AGORIC_WS_RPCS[ACTIVE_AGORIC_RPC_INDEX]
     agoricWsProvider = new WebSocket(url);
 
@@ -53,23 +61,22 @@ export function createAgoricWebSocket() {
 
     // Listen for new blocks
     agoricWsProvider.on('message', async (message: string) => {
-        let msgJSON = JSON.parse(message)
+        const msgJSON = JSON.parse(message)
         if (msgJSON.result.data) {
-            let newHeight = Number(msgJSON.result.data.value.block.header.height)
+            const newHeight = Number(msgJSON.result.data.value.block.header.height)
             setRpcBlockHeight("agoric", newHeight)
-            let newOffers = await getNewOffers()
+            const newOffers = await getNewOffers()
 
             // Loop through each offer and set them to submitted
-            for (let offer of newOffers) {
+            for (const offer of newOffers) {
                 await updateSubmissionStatus(offer.txHash, false, SubmissionStatus.SUBMITTED)
             }
 
             // Check for offers to be resubmitted
-            let expiredTransactions = await getExpiredTransactionsWithInflightStatus(newHeight)
-
+            const expiredTransactions = await getExpiredTransactionsWithInflightStatus(newHeight)
             // Loop though these and resubmit
-            for (let transaction of expiredTransactions) {
-                let evidence = {
+            for (const transaction of expiredTransactions) {
+                const evidence = {
                     amount: transaction.amount,
                     status: TransactionStatus.CONFIRMED,
                     blockHash: transaction.blockHash,
@@ -78,10 +85,11 @@ export function createAgoricWebSocket() {
                     forwardingChannel: transaction.forwardingChannel,
                     recipientAddress: transaction.recipientAddress,
                     txHash: transaction.transactionHash,
-                    chainId: transaction.chainId,
+                    chainId: vStoragePolicy.chainPolicies[transaction.chain].chainId,
+                    sender: transaction.sender,
                     blockTimestamp: transaction.blockTimestamp
                 }
-                await submitToAgoric(evidence)
+                submissionQueue.addToQueue(evidence, transaction.risksIdentified)
             }
 
             logger.debug(`New block from agoric: ${newHeight}`);
@@ -133,8 +141,8 @@ export const execSwingsetTransaction = (
         ? `--keyring-backend=${keyring.backend}`
         : '';
     const cmd = `agd --node=${AGORIC_RPCS[ACTIVE_AGORIC_RPC_INDEX]} --chain-id=${AGORIC_NETWORK} ${homeOpt} ${backendOpt} --from=${from} tx swingset ${swingsetArgs} --output=json --yes`;
-    logger.debug('Executing ', cmd);
-    let response = JSON.parse(execSync(cmd).toString());
+    logger.debug(`Executing ${cmd}`);
+    const response = JSON.parse(execSync(cmd).toString());
     return {
         code: response.code,
         raw_log: response.raw_log,
@@ -190,13 +198,13 @@ export const getInvitation = async () => {
 
     const current = await getCurrent(WATCHER_WALLET_ADDRESS, { readPublished });
     const invitations = current.offerToUsedInvitation;
-    for (let inv of invitations) {
-        let invitationId = inv[0]
-        let invitationDetails = inv[1]
+    for (const inv of invitations) {
+        const invitationId = inv[0]
+        const invitationDetails = inv[1]
 
         //if there is a value
         if (invitationDetails.value && invitationDetails.value.length > 0) {
-            let boardId = invitationDetails.value[0].instance.getBoardId();
+            const boardId = invitationDetails.value[0].instance.getBoardId();
             if (boardId == fastUsdcBoardId) {
                 watcherInvitation = invitationId
                 logger.info(`Found Watcher Invitiation ${watcherInvitation} for ${WATCHER_WALLET_ADDRESS}`)
@@ -226,8 +234,15 @@ export const queryParams = async () => {
         const { value } = JSON.parse(capDataStr);
         const specimen = JSON.parse(value);
         const { values } = specimen;
-        const capDatas = values.map((s: any) => JSON.parse(s));
-        return capDatas.at(-1) as VStorage
+        const chainPolicyCapDataStr = values.map((s: any) => JSON.parse(s));
+        capDataStr = await vstorage.readLatest("published.fastUsdc")
+        const settlementAddressCapDataStr = JSON.parse(JSON.parse(capDataStr).value).values.map((s: any) => JSON.parse(s))
+        const chainPolicy = clientMarshaller.fromCapData(chainPolicyCapDataStr.at(-1)) as VStorage
+        const policy = {
+            chainPolicy: chainPolicy as VStorage,
+            settlementAccount: settlementAddressCapDataStr.at(-1).settlementAccount
+        }
+        return policy;
     } catch (err) {
         logger.error(`Failed to parse CapData for queryParams: ${err}`);
         return null
@@ -238,9 +253,10 @@ export const queryParams = async () => {
  * Queries the parameters from Agoric and updates them
  */
 export const setParams = async () => {
-    let params = await queryParams();
+    const params = await queryParams();
     if (params) {
-        vStoragePolicy = params;
+        vStoragePolicy = params.chainPolicy;
+        settlementAccount = params.settlementAccount
     }
     else {
         logger.error(`Failed to query parameters`)
@@ -275,7 +291,7 @@ export const initChainPolicyScraper = async () => {
  * @returns {Promise<ValueFollower>} wallet follower
  */
 export const makeWalletFollower = async (address: string) => {
-    let networkConfig = getNetworkConfig()
+    const networkConfig = getNetworkConfig()
     const { unserializer } =
         await makeVstorageKit(
             {
@@ -301,8 +317,8 @@ export const makeWalletFollower = async (address: string) => {
  * @returns {Promise<CctpTxSubmission[]>} a list of offers
  */
 export const getLatestOffers = async () => {
-    let offers: { [key: string]: CctpTxSubmission } = {};
-    let follower = await makeWalletFollower(WATCHER_WALLET_ADDRESS)
+    const offers: { [key: string]: CctpTxSubmission } = {};
+    const follower = await makeWalletFollower(WATCHER_WALLET_ADDRESS)
 
     let count = 0;
     // Loop through offers, starting from latest
@@ -311,10 +327,10 @@ export const getLatestOffers = async () => {
         if (count == MAX_OFFERS_TO_LOOP) {
             break
         }
-        let offer = followerElement as any
+        const offer = followerElement as any
         if (offer.value.updated === "offerStatus") {
             // Get id
-            let id = offer.value.status.id;
+            const id = offer.value.status.id;
 
             // If the offer is not errored and it is a SubmitEvidence
             if (!offer.value.status.hasOwnProperty("error") && offer.value.status.invitationSpec.invitationMakerName == "SubmitEvidence") {
@@ -335,8 +351,8 @@ export const getLatestOffers = async () => {
  */
 export const getNewOffers = async () => {
     logger.debug(`Getting new offers from ${lastOfferId ? lastOfferId : "start"}`)
-    let offers: { [key: string]: CctpTxSubmission } = {};
-    let follower = await makeWalletFollower(WATCHER_WALLET_ADDRESS);
+    const offers: { [key: string]: CctpTxSubmission } = {};
+    const follower = await makeWalletFollower(WATCHER_WALLET_ADDRESS);
 
     let count = 0;
     let firstId = null;
@@ -346,10 +362,10 @@ export const getNewOffers = async () => {
         if (count == MAX_OFFERS_TO_LOOP) {
             break;
         }
-        let offer = followerElement as any
+        const offer = followerElement as any
         if (offer.value.updated === "offerStatus") {
             // Get id
-            let id = offer.value.status.id;
+            const id = offer.value.status.id;
 
             // If the last visited ofer id is more recent than the current id
             if (lastOfferId && !isNaN(Number(lastOfferId)) && Number(lastOfferId) >= id) {
@@ -372,7 +388,7 @@ export const getNewOffers = async () => {
     }
     // update latest id
     await setLastOfferId(firstId)
-    let isNan = isNaN(Number(firstId))
+    const isNan = isNaN(Number(firstId))
     if (!isNan && firstId) {
         setWatcherLastOfferId(WATCHER_WALLET_ADDRESS, firstId)
         lastOfferId = firstId;
@@ -387,7 +403,7 @@ export const getNewOffers = async () => {
  * @returns {Promise<CctpTxSubmission | null>} the offer related to the submission or null
  */
 export const getOfferById = async (id: string) => {
-    let follower = await makeWalletFollower(WATCHER_WALLET_ADDRESS)
+    const follower = await makeWalletFollower(WATCHER_WALLET_ADDRESS)
 
     let count = 0;
     // Loop through offers, starting from latest
@@ -396,10 +412,10 @@ export const getOfferById = async (id: string) => {
         if (count == MAX_OFFERS_TO_LOOP) {
             break
         }
-        let offer = followerElement as any
+        const offer = followerElement as any
         if (offer.value.updated === "offerStatus") {
             // Get id
-            let offerId = offer.value.status.id;
+            const offerId = offer.value.status.id;
 
             // If the offer is not errored, it is a SubmitEvidence and the offerId matches
             if (!offer.value.status.hasOwnProperty("error") && offer.value.status.invitationSpec.invitationMakerName == "SubmitEvidence" && id == offerId) {
@@ -460,5 +476,25 @@ export const getLatestBlockHeight = async () => {
             height: 0,
             syncing: true
         };
+    }
+};
+
+
+/**
+ * Fuction to decode address
+ * @param string address to decode
+ * @returns decoded address
+ */
+export function decodeAddress(address: string) {
+    try {
+        const decoded = decodeAddressHook(address);
+        if (!decoded.query || !decoded.query.EUD) {
+            logger.debug(`No EUD parameter for agoric address ${address}`);
+            return null;
+        }
+        return decoded
+    } catch (e) {
+        logger.debug(`Could not decode address hook for agoric address ${address}`);
+        return null;
     }
 }

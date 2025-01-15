@@ -13,6 +13,7 @@ import { setLastOfferId } from './lib/db';
 import apiRouter from './api';
 import { createNobleWebSocket } from './lib/noble-lcd';
 import { PORT } from './constants';
+import { getAgoricWatcherAccountDetails } from './state';
 
 const app = express();
 
@@ -34,6 +35,7 @@ const main = async () => {
     logger.debug(`Prometheus metrics available at http://localhost:${PORT}/metrics`);
   });
 
+  await getAgoricWatcherAccountDetails();
   logger.info("Initialising chain policy scraper...")
   await initChainPolicyScraper();
   await initAgoricState();

@@ -20,7 +20,7 @@ const checkApiKey: RequestHandler = (req, res, next) => {
 };
 
 apiRouter.get('/txs', checkApiKey, async (req: Request, res: Response) => {
-    let since = req.query.since as string
+    const since = req.query.since as string
     if (validateSince(since)) {
         res.status(400).json({
             success: false,
@@ -28,12 +28,12 @@ apiRouter.get('/txs', checkApiKey, async (req: Request, res: Response) => {
         })
     }
 
-    let txs = await getTransactionsSince(Number(since))
+    const txs = await getTransactionsSince(Number(since))
     res.status(200).json(txs)
 });
 
 apiRouter.get('/reorgedTxs', checkApiKey, async (req: Request, res: Response) => {
-    let since = req.query.since as string
+    const since = req.query.since as string
     if (validateSince(since)) {
         res.status(400).json({
             success: false,
@@ -41,7 +41,7 @@ apiRouter.get('/reorgedTxs', checkApiKey, async (req: Request, res: Response) =>
         })
     }
 
-    let txs = await getRemovedTransactionsSince(Number(since))
+    const txs = await getRemovedTransactionsSince(Number(since))
     res.status(200).json(txs)
 });
 

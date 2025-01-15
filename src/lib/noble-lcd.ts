@@ -1,10 +1,11 @@
+import { add } from 'winston';
 import { ENV, MINUTES_HOLDING_UNKNOWN_FA, NOBLE_LCD_URL, NOBLE_RPC_URL, NOBLE_RPC_WS_URL, RPC_RECONNECT_DELAY } from '../config/config';
 import { EXPECTED_NOBLE_CHANNEL_ID, PROD, TESTING_NOBLE_FA, TESTING_NOBLE_FA_ADDR, UNKNOWN_FA } from '../constants';
 import { incrementEventsCount, incrementTotalAmount, setRpcBlockHeight } from '../metrics';
 import type { ForwardingAccount, NobleAddress, QueryAccountError, QueryAccountResponse } from '../types';
 import { logger } from '../utils/logger';
-import { vStoragePolicy } from './agoric';
-import { getUnknownFATransactionsSince, removeTransaction, updateTransactionRecipientandChannel } from './db';
+import { decodeAddress, vStoragePolicy } from './agoric';
+import { addNobleAccount, getNobleAccount, getUnknownFATransactionsSince, removeTransaction, updateTransactionRecipientandChannel } from './db';
 import WebSocket from 'ws';
 
 // Holds the Noble WS Provider
@@ -50,15 +51,6 @@ export const makeNobleLCD = ({
 
 export type NobleLCD = ReturnType<typeof makeNobleLCD>;
 
-type CacheEntry =
-  | ({ isAgoricForwardingAcct: boolean } & ForwardingAccount)
-  | ({ isAgoricForwardingAcct: boolean });
-
-/**
- * in-memory map to cache address lookup queries
- */
-const accountCache = new Map<NobleAddress, CacheEntry>();
-
 /**
  * Gets an agoric forwarding account from a noble address
  * @param nobleLCD nobleLCD to query noble
@@ -67,16 +59,16 @@ const accountCache = new Map<NobleAddress, CacheEntry>();
 export const getForwardingAccount =
   async (nobleLCD: NobleLCD, address: NobleAddress): Promise<ForwardingAccount | null> => {
     // Forwarding target derivation requires a query to a Noble LCD or RPC node.
-    // The response is deterministic, so let's cache any results.
-    const cached = accountCache.get(address);
+    // The response is deterministic, so let's store results in a DB
+    const cached = await getNobleAccount(address)
     if (cached) {
-      logger.debug('Retrieved address details from cache.');
-      const { isAgoricForwardingAcct, ...details } = cached;
+      logger.debug(`Retrieved Noble forwarding account details from DB for ${address}.`);
+      const { isAgoricForwardingAcct, account } = cached;
       if (!isAgoricForwardingAcct) {
         logger.debug(`${address} is not an Agoric forwarding account.`);
         return null;
       }
-      return details as ForwardingAccount;
+      return account as ForwardingAccount;
     }
 
     // query LCD client for account details
@@ -90,11 +82,14 @@ export const getForwardingAccount =
       // we are only interested in ForwardingAccounts
       if (accountDetails['@type'] !== '/noble.forwarding.v1.ForwardingAccount') {
         logger.debug(`${accountDetails.address} is not a forwarding account.`);
-        accountCache.set(address, { isAgoricForwardingAcct: false });
+        await addNobleAccount({
+          nobleAddress: address,
+          isAgoricForwardingAcct: false
+        })
         return null;
       }
 
-      let expectedChannelId = ENV == PROD ? vStoragePolicy.nobleAgoricChannelId : EXPECTED_NOBLE_CHANNEL_ID
+      const expectedChannelId = ENV == PROD ? vStoragePolicy.nobleAgoricChannelId : EXPECTED_NOBLE_CHANNEL_ID
       // we are only interested in agoric plus address accounts
       if (
         (!accountDetails.recipient.startsWith('agoric') &&
@@ -104,13 +99,28 @@ export const getForwardingAccount =
         logger.debug(
           `${accountDetails.recipient} is not an Agoric forwarding address.`,
         );
-        accountCache.set(address, { isAgoricForwardingAcct: false });
+        await addNobleAccount({
+          nobleAddress: address,
+          isAgoricForwardingAcct: false
+        })
         return null;
       }
-      accountCache.set(address, {
-        ...accountDetails,
-        isAgoricForwardingAcct: true,
-      });
+
+      // Check for EUD parameter
+      const decodedAddress = decodeAddress(accountDetails.recipient)
+      if (!decodedAddress) {
+        await addNobleAccount({
+          nobleAddress: address,
+          isAgoricForwardingAcct: false
+        })
+        return null
+      }
+
+      await addNobleAccount({
+        nobleAddress: address,
+        account: accountDetails,
+        isAgoricForwardingAcct: true
+      })
       return accountDetails;
 
     } catch (err) {
@@ -165,21 +175,21 @@ export function createNobleWebSocket() {
 
   // Listen for new blocks
   nobleWsProvider.on('message', async (message: string) => {
-    let msgJSON = JSON.parse(message)
+    const msgJSON = JSON.parse(message)
     if (msgJSON.result.data) {
-      let newHeight = Number(msgJSON.result.data.value.block.header.height)
+      const newHeight = Number(msgJSON.result.data.value.block.header.height)
       setRpcBlockHeight("Noble", newHeight)
       logger.debug(`New block from Noble: ${newHeight}`);
 
       // Get unknown transactions and query their forwarding address
-      let since = Date.now() - (MINUTES_HOLDING_UNKNOWN_FA * 60 * 1000)
-      let txs = await getUnknownFATransactionsSince(since)
-      let nobleClient = getNobleLCDClient()
+      const since = Date.now() - (MINUTES_HOLDING_UNKNOWN_FA * 60 * 1000)
+      const txs = await getUnknownFATransactionsSince(since)
+      const nobleClient = getNobleLCDClient()
 
       // For each transaction query the noble forwarding account
-      for (let tx of txs) {
-        let forwardingAddress = tx.forwardingAddress
-        let forwardingAccount = await getForwardingAccount(nobleClient, forwardingAddress as NobleAddress)
+      for (const tx of txs) {
+        const forwardingAddress = tx.forwardingAddress
+        const forwardingAccount = await getForwardingAccount(nobleClient, forwardingAddress as NobleAddress)
 
         // If null, discard the tx because it is not an agoric fa
         if (!forwardingAccount) {
