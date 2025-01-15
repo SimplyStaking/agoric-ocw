@@ -15,7 +15,7 @@ services:
   agoricocw:
     depends_on:
       - verifier
-    image: simplystaking/agoric-fast-usdc-ocw:v0.0.3
+    image: simplystaking/agoric-fast-usdc-ocw:v0.0.4
     stop_signal: SIGTERM
     stop_grace_period: 30s
     restart: always
