@@ -2,7 +2,7 @@ import { addRemovedTX, addTransaction, getBlockSums, getTransactionByHash, sumTr
 import { getForwardingAccount, getNobleLCDClient } from "./lib/noble-lcd";
 import { CCTPTxEvidence, DepositForBurnEvent, NobleAddress, TransactionStatus, TxThreshold } from "./types";
 import { logger } from "./utils/logger";
-import { incrementEventsCount, incrementRevertedCount, incrementTotalAmount } from "./metrics";
+import { incrementEventsCount, incrementRevertedCount, incrementTotalAmount, setCurrentBlockRangeAmount } from "./metrics";
 import { decodeAddress, settlementAccount, vStoragePolicy } from "./lib/agoric";
 import { ENV } from "./config/config";
 import { NOBLE_CCTP_DOMAIN, UNKNOWN_FA } from "./constants";
@@ -150,6 +150,10 @@ export async function processCCTPBurnEventLog(event: DepositForBurnEvent, origin
     // If no risks identified, increment block
     if (risksIdentified.length == 0) {
         incrementOrCreateBlock(originChain, Number(event.blockNumber), amount)
+        setCurrentBlockRangeAmount(originChain, currentBlockRangeAmount + amount)
+    }
+    else {
+        setCurrentBlockRangeAmount(originChain, currentBlockRangeAmount)
     }
 
     await addTransaction({
