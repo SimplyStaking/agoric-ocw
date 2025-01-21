@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { EVENT_ABI, getChainFromConfig } from "./config/config";
+import { ENV, EVENT_ABI, getChainFromConfig } from "./config/config";
 import { ChainConfig, DepositForBurnEvent } from "./types";
 import { getWsProvider } from "./lib/evm-client";
 import { logger } from "./utils/logger";
@@ -9,6 +9,7 @@ import { processCCTPBurnEventLog } from "./processor";
 import { setRpcAlive } from "./metrics";
 import { vStoragePolicy } from "./lib/agoric";
 import { setChainEntries } from "./state";
+import { PROD } from "./constants";
 
 /**
  * Backfills chain
@@ -32,9 +33,9 @@ export async function backfillChain(
     const logs = await wsProvider.getLogs({
       fromBlock, // Starting block number
       toBlock: latestBlockNumber, // You can specify a `toBlock` number if needed
-      address: chain.contractAddress, // Filter by contract address
+      address: ENV == PROD ? vStoragePolicy.chainPolicies[chain.name].cctpTokenMessengerAddress : chain.contractAddress, // Filter by contract address
       topics: [
-        ethers.id("DepositForBurn(uint64,address,uint256,address,bytes32,uint32,bytes32,bytes32)") // This is the event signature hash
+        ethers.id(vStoragePolicy.eventFilter) // This is the event signature hash
       ]
     });
 
@@ -105,10 +106,9 @@ export async function backfill() {
       logger.info(`Backfilling for ${chain}`)
       const chainConfig = getChainFromConfig(chain)
       if (chainConfig) {
-        await backfillChain(chainConfig, heights[chain])
+        await backfillChain(chainConfig, heights[chain] || chainConfig.startHeight)
       }
     }
-
   }
 
 }

@@ -57,6 +57,7 @@ export type ChainConfig = {
   contractAddress: string;
   name: string;
   rpcUrl: string;
+  startHeight: number;
 }
 
 export type AgoricRPCStatus = {
