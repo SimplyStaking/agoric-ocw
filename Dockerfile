@@ -14,7 +14,7 @@ RUN yarn install --frozen-lockfile
 COPY . .
 
 # Stage 2: Runtime
-FROM gcr.io/distroless/nodejs18-debian12
+FROM node:18-bookworm-slim
 
 # Set the working directory in the container
 WORKDIR /app
@@ -23,4 +23,4 @@ WORKDIR /app
 COPY --from=builder /app /app
 
 # Command to run your TypeScript code
-CMD ["start"]
+CMD ["yarn", "start"]

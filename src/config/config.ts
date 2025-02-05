@@ -7,42 +7,88 @@ import { PROD } from '../constants';
 config();
 
 /**
+ * Check chains start hieght
+ */
+const ETHEREUM_START_HEIGHT = Number(process.env.ETHEREUM_START_HEIGHT || '0');
+if (isNaN(ETHEREUM_START_HEIGHT)) {
+  logger.error(`ETHEREUM_START_HEIGHT must be a valid number`)
+  process.exit(1)
+}
+
+const POLYGON_START_HEIGHT = Number(process.env.POLYGON_START_HEIGHT || '0');
+if (isNaN(POLYGON_START_HEIGHT)) {
+  logger.error(`POLYGON_START_HEIGHT must be a valid number`)
+  process.exit(1)
+}
+
+const OPTIMISM_START_HEIGHT = Number(process.env.OPTIMISM_START_HEIGHT || '0');
+if (isNaN(OPTIMISM_START_HEIGHT)) {
+  logger.error(`POLYGON_START_HEIGHT must be a valid number`)
+  process.exit(1)
+}
+
+const BASE_START_HEIGHT = Number(process.env.BASE_START_HEIGHT || '0');
+if (isNaN(BASE_START_HEIGHT)) {
+  logger.error(`POLYGON_START_HEIGHT must be a valid number`)
+  process.exit(1)
+}
+
+const ARBITRUM_START_HEIGHT = Number(process.env.ARBITRUM_START_HEIGHT || '0');
+if (isNaN(ARBITRUM_START_HEIGHT)) {
+  logger.error(`POLYGON_START_HEIGHT must be a valid number`)
+  process.exit(1)
+}
+
+const LOCALEVMCHAIN_START_HEIGHT = Number(process.env.LOCALEVMCHAIN_START_HEIGHT || '0');
+if (isNaN(LOCALEVMCHAIN_START_HEIGHT)) {
+  logger.error(`POLYGON_START_HEIGHT must be a valid number`)
+  process.exit(1)
+}
+
+/**
  * Configuration for supported chains and their RPC URLs and contract addresses.
  */
 export const chainConfig = [
   {
     name: "Ethereum",
     rpcUrl: process.env.ETHEREUM_MAINNET_RPC_URL || '',
+    startHeight: ETHEREUM_START_HEIGHT,
     contractAddress: "0xBd3fa81B58Ba92a82136038B25aDec7066af3155",
   },
   {
     name: "Polygon",
     rpcUrl: process.env.POLYGON_RPC_URL || '',
+    startHeight: POLYGON_START_HEIGHT,
     contractAddress: "0x9daF8c91AEFAE50b9c0E69629D3F6Ca40cA3B3FE",
   },
   {
     name: "Optimism",
     rpcUrl: process.env.OPTIMISM_RPC_URL || '',
+    startHeight: OPTIMISM_START_HEIGHT,
     contractAddress: "0x2B4069517957735bE00ceE0fadAE88a26365528f",
   },
   {
     name: "Base",
     rpcUrl: process.env.BASE_RPC_URL || '',
+    startHeight: BASE_START_HEIGHT,
     contractAddress: "0x1682Ae6375C4E4A97e4B583BC394c861A46D8962",
   },
   {
 
     name: "Arbitrum",
     rpcUrl: process.env.ARBITRUM_RPC_URL || '',
+    startHeight: ARBITRUM_START_HEIGHT,
     contractAddress: "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
   },
   {
 
     name: "LocalTestChain",
     rpcUrl: process.env.LOCALEVMCHAIN_RPC_URL || '',
+    startHeight: LOCALEVMCHAIN_START_HEIGHT,
     contractAddress: "0xBd3fa81B58Ba92a82136038B25aDec7066af3155",
   },
-] as const;
+];
+
 
 /**
  * Holds the Noble LCD URL (Port 1317)

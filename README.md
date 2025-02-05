@@ -106,7 +106,7 @@ forge script foundry/script/CCTPTransfer.s.sol \
     --sig "run(bytes32,uint256)" \
     --rpc-url http://localhost:8545 \
     --broadcast \
-    "$RECIPIENT" 10000000
+    "$RECIPIENT" 1000
 ```
 
 References:
