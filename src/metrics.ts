@@ -78,6 +78,14 @@ const currentBlockRangeAmount = new Gauge({
 });
 
 /**
+ * Gauge metric to track worker missed NFAs
+ */
+const missedWorkerNFA = new Gauge({
+    name: 'worker_missed_nfa',
+    help: 'Shows the number of missed NFAs by the worker',
+});
+
+/**
  * Sets the rpcAlive metric for a specific network.
  * @param network - The name of the network.
  * @param isAlive - Boolean value indicating if the RPC is alive (true) or dead (false).
@@ -244,6 +252,13 @@ export const getCurrentBlockRangeAmount = async (network: string) => {
 
     return 0;
 };
+
+/**
+ * Increments the missed NFA metric by 1.
+ */
+export const incrementMissedNFAs = async () => {
+    missedWorkerNFA.inc();
+}
 
 // Exports the 'register' object for exposing metrics in index.js or other modules
 export { register };

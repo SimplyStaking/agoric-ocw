@@ -1,7 +1,7 @@
 import { add } from 'winston';
 import { ENV, MINUTES_HOLDING_UNKNOWN_FA, NOBLE_LCD_URL, NOBLE_RPC_URL, NOBLE_RPC_WS_URL, RPC_RECONNECT_DELAY } from '../config/config';
 import { EXPECTED_NOBLE_CHANNEL_ID, PROD, TESTING_NOBLE_FA, TESTING_NOBLE_FA_ADDR, UNKNOWN_FA } from '../constants';
-import { incrementEventsCount, incrementTotalAmount, setRpcBlockHeight } from '../metrics';
+import { incrementEventsCount, incrementMissedNFAs, incrementTotalAmount, setRpcBlockHeight } from '../metrics';
 import type { ForwardingAccount, NobleAddress, QueryAccountError, QueryAccountResponse } from '../types';
 import { logger } from '../utils/logger';
 import { decodeAddress, vStoragePolicy } from './agoric';
@@ -58,19 +58,6 @@ export type NobleLCD = ReturnType<typeof makeNobleLCD>;
  */
 export const getForwardingAccount =
   async (nobleLCD: NobleLCD, address: NobleAddress): Promise<ForwardingAccount | null> => {
-    // Forwarding target derivation requires a query to a Noble LCD or RPC node.
-    // The response is deterministic, so let's store results in a DB
-    const cached = await getNobleAccount(address)
-    if (cached) {
-      logger.debug(`Retrieved Noble forwarding account details from DB for ${address}.`);
-      const { isAgoricForwardingAcct, account } = cached;
-      if (!isAgoricForwardingAcct) {
-        logger.debug(`${address} is not an Agoric forwarding account.`);
-        return null;
-      }
-      return account as ForwardingAccount;
-    }
-
     // query LCD client for account details
     try {
       const res = await nobleLCD.queryAccount(address);
@@ -121,6 +108,7 @@ export const getForwardingAccount =
         account: accountDetails,
         isAgoricForwardingAcct: true
       })
+      await incrementMissedNFAs();
       return accountDetails;
 
     } catch (err) {

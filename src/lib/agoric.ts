@@ -1,9 +1,9 @@
-import { ACTIVE_AGORIC_RPC_INDEX, AGORIC_NETWORK, AGORIC_RPCS, AGORIC_WS_RPCS, MAX_OFFERS_TO_LOOP, QUERY_PARAMS_INTERVAL, RPC_RECONNECT_DELAY, WATCHER_WALLET_ADDRESS, nextActiveAgoricRPC } from "../config/config";
+import { ACTIVE_AGORIC_RPC_INDEX, AGORIC_NETWORK, AGORIC_RPCS, AGORIC_WS_RPCS, ENV, MAX_OFFERS_TO_LOOP, QUERY_PARAMS_INTERVAL, RPC_RECONNECT_DELAY, WATCHER_WALLET_ADDRESS, chainConfig, nextActiveAgoricRPC } from "../config/config";
 import { logger } from "../utils/logger";
 import WebSocket from 'ws';
 import { execSync } from 'child_process';
 import { makeVstorageKit } from '@agoric/client-utils';
-import { AgoricSubmissionResponse, CctpTxSubmission, NetworkConfig, SubmissionStatus, TransactionStatus, VStorage } from "../types";
+import { AgoricSubmissionResponse, CctpTxSubmission, NetworkConfig, NobleAddress, OCWForwardingAccount, SubmissionStatus, TransactionStatus, VStorage } from "../types";
 import { BridgeAction } from '@agoric/smart-wallet/src/smartWallet.js'
 import {
     iterateReverse,
@@ -12,9 +12,9 @@ import {
 } from '@agoric/casting';
 import axios from "axios";
 import { setRpcBlockHeight, setWatcherLastOfferId } from "../metrics";
-import { getExpiredTransactionsWithInflightStatus, getLastOfferId, setLastOfferId, updateSubmissionStatus } from "./db";
+import { addNobleAccount, getExpiredTransactionsWithInflightStatus, getLastOfferId, setLastOfferId, updateSubmissionStatus } from "./db";
 import { submissionQueue } from "../queue";
-import { MARSHALLER } from "@src/constants";
+import { EXPECTED_NOBLE_CHANNEL_ID, MARSHALLER, NFA_WORKER_ENDPOINT, PROD, TESTING_NOBLE_FA, TESTING_NOBLE_FA_ADDR, TESTING_NOBLE_FA_RECIPIENT } from "@src/constants";
 import { makeClientMarshaller } from "@src/utils/marshaller";
 import { decodeAddressHook } from "@agoric/cosmic-proto/address-hooks.js";
 
@@ -496,5 +496,39 @@ export function decodeAddress(address: string) {
     } catch (e) {
         logger.debug(`Could not decode address hook for agoric address ${address}`);
         return null;
+    }
+}
+
+/**
+ * Function which queries recipient for NFA from worker
+ * @param address noble address to query
+ * @returns the recipient address or null if it does not exist
+ */
+export async function queryWorkerForNFA(address: NobleAddress) {
+    if (address == TESTING_NOBLE_FA_ADDR && ENV != PROD) {
+        return {
+            channel: EXPECTED_NOBLE_CHANNEL_ID,
+            recipient: TESTING_NOBLE_FA_RECIPIENT
+        } as OCWForwardingAccount
+    }
+    try {
+        const response = await axios.get(`${NFA_WORKER_ENDPOINT}/lookup/${address}`);
+        let res = response.data
+        await addNobleAccount({
+            nobleAddress: address,
+            account: {
+                recipient: res.recipient,
+                channel: res.channel,
+            },
+            isAgoricForwardingAcct: true
+        })
+        return res;
+    } catch (error: any) {
+        if (error.response && error.response.status === 404) {
+            logger.debug(`Noble address ${address} not found in worker`);
+            return null;
+        }
+        logger.error(`Error querying NFA from worker: ${error}`);
+        return null
     }
 }
