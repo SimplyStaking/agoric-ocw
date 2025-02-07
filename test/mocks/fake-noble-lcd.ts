@@ -1,7 +1,7 @@
 import type { NobleAddress, QueryAccountError, QueryAccountResponse } from '@src/types.js';
 import type {
   NobleLCD,
-} from '@lib/noble-lcd.js';
+} from '@src/lib/noble-lcd.js';
 import { TESTING_NOBLE_FA } from '@src/constants.js';
 
 export const SCENARIOS: Record<string, NobleAddress> = {

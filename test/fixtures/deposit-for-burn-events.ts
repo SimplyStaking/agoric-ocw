@@ -15,7 +15,7 @@ export const DEPOSIT_FOR_BURN_EVENTS = {
     sender: "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
     blockTimestamp: 10000000n,
     removed: false,
-    amount: 150000000n,
+    amount: 100n,
     mintRecipient:
       '0x00000000000000000000000033c8d468adbe92060d5e34981d6fa0d8fedeef44',
     destinationDomain: 4,

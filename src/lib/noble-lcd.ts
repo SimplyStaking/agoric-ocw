@@ -5,7 +5,7 @@ import { incrementEventsCount, incrementMissedNFAs, incrementTotalAmount, setRpc
 import type { ForwardingAccount, NobleAddress, QueryAccountError, QueryAccountResponse } from '../types';
 import { logger } from '../utils/logger';
 import { decodeAddress, vStoragePolicy } from './agoric';
-import { addNobleAccount, getNobleAccount, getUnknownFATransactionsSince, removeTransaction, updateTransactionRecipientandChannel } from './db';
+import { addNobleAccount, getUnknownFATransactionsSince, removeTransaction, updateTransactionRecipientandChannel } from './db';
 import WebSocket from 'ws';
 
 // Holds the Noble WS Provider
@@ -68,7 +68,7 @@ export const getForwardingAccount =
 
       // we are only interested in ForwardingAccounts
       if (accountDetails['@type'] !== '/noble.forwarding.v1.ForwardingAccount') {
-        logger.debug(`${accountDetails.address} is not a forwarding account.`);
+        logger.debug(`${address} is not a forwarding account.`);
         await addNobleAccount({
           nobleAddress: address,
           isAgoricForwardingAcct: false
