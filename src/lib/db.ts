@@ -159,10 +159,10 @@ const baseAccountSchema = new Schema({
 });
 
 const forwardingAccountSchema = new Schema<ForwardingAccount>({
-    base_account: { type: baseAccountSchema, required: true },
+    base_account: { type: baseAccountSchema },
     channel: { type: String, required: true },
     recipient: { type: String, required: true },
-    created_at: { type: String, required: true },
+    created_at: { type: String },
 });
 
 const nobleAccountSchema = new Schema<INobleAccount>({

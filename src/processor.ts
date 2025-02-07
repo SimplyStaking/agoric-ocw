@@ -1,9 +1,9 @@
-import { addRemovedTX, addTransaction, getBlockSums, getTransactionByHash, sumTransactionAmounts, updateTransactionStatus } from "./lib/db";
-import { getForwardingAccount, getNobleLCDClient } from "./lib/noble-lcd";
-import { CCTPTxEvidence, DepositForBurnEvent, NobleAddress, TransactionStatus, TxThreshold } from "./types";
+import { addRemovedTX, addTransaction, getBlockSums, getNobleAccount, getTransactionByHash, sumTransactionAmounts, updateTransactionStatus } from "./lib/db";
+import { getForwardingAccount, getNobleLCDClient, NobleLCD } from "./lib/noble-lcd";
+import { CCTPTxEvidence, DepositForBurnEvent, NobleAddress, OCWForwardingAccount, TransactionStatus, TxThreshold } from "./types";
 import { logger } from "./utils/logger";
 import { incrementEventsCount, incrementRevertedCount, incrementTotalAmount, setCurrentBlockRangeAmount } from "./metrics";
-import { decodeAddress, settlementAccount, vStoragePolicy } from "./lib/agoric";
+import { decodeAddress, queryWorkerForNFA, settlementAccount, vStoragePolicy } from "./lib/agoric";
 import { ENV } from "./config/config";
 import { NOBLE_CCTP_DOMAIN, UNKNOWN_FA } from "./constants";
 import { getTotalSumForChainBlockRangeAmount, incrementOrCreateBlock } from "./state";
@@ -31,6 +31,48 @@ function getConfirmations(amount: number, txThresholds: TxThreshold[]): number {
     return threshold ? threshold.confirmations : -1;
 }
 
+/**
+ * Gets a forwarding account (channel and recipient) from a noble address
+ * @param nobleLCD nobleLCD to query noble
+ * @returns A forwarding account or null if its not an agoric forwarding account
+ */
+export const getOCWForwardingAccount =
+    async (nobleLCD: NobleLCD, address: NobleAddress): Promise<OCWForwardingAccount | null> => {
+        // Forwarding target derivation requires a query to a Noble LCD or RPC node.
+        // The response is deterministic, so let's store results in a DB
+        const cached = await getNobleAccount(address)
+        if (cached) {
+            logger.debug(`Retrieved Noble forwarding account details from DB for ${address}.`);
+            const { isAgoricForwardingAcct, account } = cached;
+            if (!isAgoricForwardingAcct) {
+                logger.debug(`${address} is not an Agoric forwarding account.`);
+                return null;
+            }
+            return {
+                channel: account?.channel,
+                recipient: account?.recipient
+            } as OCWForwardingAccount;
+        }
+
+        let workerNFA = await queryWorkerForNFA(address)
+
+        if (workerNFA) {
+            logger.debug(`Found Noble Forwarding Account for ${address} from worker`)
+            return workerNFA
+        }
+
+        let lcdNBA = await getForwardingAccount(nobleLCD, address)
+
+        if (lcdNBA) {
+            return {
+                channel: lcdNBA?.channel,
+                recipient: lcdNBA?.recipient
+            } as OCWForwardingAccount;
+        }
+
+        return null
+    };
+
 export async function processCCTPBurnEventLog(event: DepositForBurnEvent, originChain: string, nobleLCD = getNobleLCDClient(), backfilling: boolean = false): (Promise<CCTPTxEvidence | null>) {
     // If not to noble
     if (event.destinationDomain != (vStoragePolicy.nobleDomainId || NOBLE_CCTP_DOMAIN)) {
@@ -43,7 +85,7 @@ export async function processCCTPBurnEventLog(event: DepositForBurnEvent, origin
     // Get noble address
     const nobleAddress = decodeToNoble(event.mintRecipient || "")
 
-    const agoricForwardingAcct = await getForwardingAccount(nobleLCD, nobleAddress as NobleAddress)
+    const agoricForwardingAcct = await getOCWForwardingAccount(nobleLCD, nobleAddress as NobleAddress)
 
     // If not an agoric forwarding account
     if (!agoricForwardingAcct) {

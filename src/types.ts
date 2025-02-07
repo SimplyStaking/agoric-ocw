@@ -144,11 +144,16 @@ export type BaseAccount = {
 };
 
 export type ForwardingAccount = {
-  '@type': '/noble.forwarding.v1.ForwardingAccount';
-  base_account: Omit<BaseAccount, '@type'>;
+  '@type'?: '/noble.forwarding.v1.ForwardingAccount';
+  base_account?: Omit<BaseAccount, '@type'>;
   channel: IBCChannelID;
   recipient: string; // e.g. agoric1234+osmos123
-  created_at: string;
+  created_at?: string;
+};
+
+export type OCWForwardingAccount = {
+  channel: IBCChannelID;
+  recipient: string; // e.g. agoric1234+osmos123
 };
 
 export type QueryAccountResponse = {

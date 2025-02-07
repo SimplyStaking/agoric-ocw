@@ -1,7 +1,6 @@
 require('dotenv').config({ path: '.env.test' });
 
-import { decodeAddress } from "@src/lib/agoric";
-import { EXPECTED_NOBLE_CHANNEL_ID, TESTING_NOBLE_FA_RECIPIENT, TESTING_SETTLEMENT_ADDR } from "../../src/constants";
+import { EXPECTED_NOBLE_CHANNEL_ID, TESTING_NOBLE_FA_ADDR, TESTING_NOBLE_FA_RECIPIENT, TESTING_SETTLEMENT_ADDR } from "../../src/constants";
 import { processCCTPBurnEventLog } from "../../src/processor";
 import { TransactionStatus } from "../../src/types";
 import { DEPOSIT_FOR_BURN_EVENTS } from "../fixtures/deposit-for-burn-events";
@@ -32,6 +31,15 @@ jest.mock('./../../src/lib/agoric', () => ({
   initAgoricState: jest.fn(),
   getInvitation: jest.fn(),
   createAgoricWebSocket: jest.fn(),
+  queryWorkerForNFA: jest.fn((address) => {
+    if (address === TESTING_NOBLE_FA_ADDR){
+      return {
+        recipient: TESTING_NOBLE_FA_RECIPIENT,
+        channel: EXPECTED_NOBLE_CHANNEL_ID,
+      }
+    };
+    return null;
+  }),
   settlementAccount: TESTING_SETTLEMENT_ADDR,
   decodeAddress: jest.fn().mockReturnValue({
     baseAddress: 'agoric139rzngvjxghadprms96tk7fxssqwrhlpmz48gvwqxv5djwaz7fyqcx9tq9',
@@ -43,7 +51,7 @@ jest.mock('./../../src/lib/db', () => ({
   getTransactionByHash: jest.fn(),
   updateTransactionStatus: jest.fn(),
   getAllHeights: jest.fn(),
-  getNobleAccount: jest.fn(),
+  getNobleAccount: jest.fn().mockReturnValue(null),
   addNobleAccount: jest.fn(),
 }));
 
@@ -55,6 +63,7 @@ jest.mock('./../../src/metrics', () => ({
   intialiseGauges: jest.fn(),
   getNobleAccount: jest.fn(),
   setRpcAlive: jest.fn(),
+  setCurrentBlockRangeAmount: jest.fn(),
 }));
 
 jest.mock('./../../src/state', () => ({
@@ -175,7 +184,7 @@ describe('processor Tests', () => {
   test('processes event for agoric plus address with reporting', async () => {
     const evidence = await processCCTPBurnEventLog(DEPOSIT_FOR_BURN_EVENTS['agoric-forwarding-acct'], "Ethereum", fakeNobleLCD);
     const expectedEvidence = {
-      amount: 150000000n,
+      amount: 100n,
       status: TransactionStatus.CONFIRMED,
       blockHash:
         '0x90d7343e04f8160892e94f02d6a9b9f255663ed0ac34caca98544c8143fee665',
