@@ -3,7 +3,7 @@ import { processCCTPBurnEventLog } from './processor';
 import { logger } from './utils/logger';
 import { submitToAgoric } from './submitter';
 import { setRpcAlive, setRpcBlockHeight } from './metrics';
-import { ENV, EVENT_ABI, getChainFromConfig } from "./config/config";
+import { chainConfig, ENV, EVENT_ABI, getChainFromConfig } from "./config/config";
 import { ChainConfig, DepositForBurnEvent, Hex, TransactionStatus } from './types';
 import { ContractEventPayload } from 'ethers';
 import { getWsProvider } from './lib/evm-client';
@@ -61,7 +61,7 @@ export function listen(chain: ChainConfig) {
     logger.debug(`New block from ${chain.name}: ${blockNumber}`)
 
     const currentHeights = await getAllHeights()
-    const currentHeight = currentHeights ? currentHeights[chain.name] : 0;
+    const currentHeight = currentHeights ? currentHeights[chain.name] : getChainFromConfig(chain.name)?.startHeight || 0;
 
     // Only perform backfill if the WS subsription skips a hieght
     if (blockNumber > currentHeight + 1) {
