@@ -506,6 +506,14 @@ export function decodeAddress(address: string) {
  */
 export async function queryWorkerForNFA(address: NobleAddress) {
     if (address == TESTING_NOBLE_FA_ADDR && ENV != PROD) {
+        await addNobleAccount({
+            nobleAddress: address,
+            account: {
+                recipient: TESTING_NOBLE_FA_RECIPIENT,
+                channel: EXPECTED_NOBLE_CHANNEL_ID,
+            },
+            isAgoricForwardingAcct: true
+        })
         return {
             channel: EXPECTED_NOBLE_CHANNEL_ID,
             recipient: TESTING_NOBLE_FA_RECIPIENT
