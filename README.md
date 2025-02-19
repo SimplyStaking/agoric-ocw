@@ -151,19 +151,27 @@ agd version
 
 3. Copy the .env file
 ```
-cp .env.sample .env
+cp .env.prod .env
 ```
 
-4. Change the RPCs for the EVM chains, Agoric and Noble in .env
-5. Change the watcher address to your wallet address in .env
+4. Change the following variables in .env
+    - ETHEREUM_MAINNET_RPC_URL
+    - POLYGON_RPC_URL
+    - OPTIMISM_RPC_URL
+    - BASE_RPC_URL
+    - ARBITRUM_RPC_URL
+    - WATCHER_WALLET_ADDRESS
+    - AGORIC_LCD_URL
+    - AGORIC_RPCS
+    - AGORIC_WS_RPCS
 
-6. Accept the oracle invitation by running the following
+5. Accept the oracle invitation by running the following
 ```
 node_modules/.bin/tsx ./scripts/accept.ts > acceptWatcher.json
 ~/bin/agoric wallet send --offer acceptWatcher.json --from <YOUR_WALLET_ADDRESS>  --keyring-backend="test" --home="./binaries"
 ```
 
-7. Run the containers
+6. Run the containers
 ```
 docker compose up -d
 ```
