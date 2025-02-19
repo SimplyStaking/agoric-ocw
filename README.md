@@ -116,6 +116,9 @@ References:
 
 Running the OCW involves the following steps
 
+Requirements:
+    - mongo
+
 1. Verify the image
 ```
 docker-compose up verifier 
@@ -164,6 +167,7 @@ cp .env.prod .env
     - AGORIC_LCD_URL
     - AGORIC_RPCS
     - AGORIC_WS_RPCS
+    - DB_URL
 
 5. Accept the oracle invitation by running the following
 ```
