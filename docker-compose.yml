@@ -29,6 +29,6 @@ services:
       - NODE_ENV=production
     volumes:
       - "./binaries/agd:/usr/local/bin/agd"
-      - "~/.agoric:/root/.agoric"
+      - "~/.agoric:/app/.agoric"
       - "./.env:/app/.env"
     command: ["node_modules/.bin/tsx", "./src/index.ts"]
