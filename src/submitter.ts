@@ -39,6 +39,7 @@ export async function submitToAgoric(evidence: CCTPTxEvidence, risksIdentified: 
         },
         "blockHash": evidence.blockHash,
         "blockNumber": BigInt(evidence.blockNumber),
+        "blockTimestamp": BigInt(evidence.blockTimestamp),
         "chainId": evidence.chainId,
         "tx": {
             "amount": BigInt(evidence.amount),
