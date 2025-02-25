@@ -41,7 +41,7 @@ export function listen(chain: ChainConfig) {
             blockHash: event.log.blockHash as Hex,
             blockNumber: BigInt(event.log.blockNumber),
             removed: event.log.removed,
-            blockTimestamp: BigInt(Date.now()),
+            blockTimestamp: BigInt(0),
             sender: depositor
           };
 

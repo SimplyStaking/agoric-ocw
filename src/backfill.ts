@@ -68,7 +68,7 @@ export async function backfillChain(
               blockNumber: BigInt(log.blockNumber),
               removed: log.removed,
               sender: depositor,
-              blockTimestamp: BigInt(Date.now()) // Ignore for now
+              blockTimestamp: BigInt(0) // Ignore for now
             };
 
             // Process the event and submit if evidence is found
