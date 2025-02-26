@@ -1,7 +1,7 @@
 import { ethers } from "ethers";
 import { ENV, EVENT_ABI, getChainFromConfig } from "./config/config";
 import { ChainConfig, DepositForBurnEvent } from "./types";
-import { getWsProvider } from "./lib/evm-client";
+import { getBlockTimestamp, getWsProvider } from "./lib/evm-client";
 import { logger } from "./utils/logger";
 import { getAllHeights, setHeightForChain, getBlockSums } from "./lib/db";
 import { Hex } from "viem";
@@ -60,6 +60,8 @@ export async function backfillChain(
           if (Number(destinationDomain) === 4) { // Filter by specific destination domain
             setRpcAlive(chain.name, true);
 
+            let timestamp = await getBlockTimestamp(wsProvider, log.blockNumber, chain.name);
+
             // Create a log object with details needed for processing
             const eventLog: DepositForBurnEvent = {
               amount, mintRecipient, destinationDomain, destinationTokenMessenger,
@@ -68,7 +70,7 @@ export async function backfillChain(
               blockNumber: BigInt(log.blockNumber),
               removed: log.removed,
               sender: depositor,
-              blockTimestamp: BigInt(0) // Ignore for now
+              blockTimestamp: BigInt(timestamp)
             };
 
             // Process the event and submit if evidence is found

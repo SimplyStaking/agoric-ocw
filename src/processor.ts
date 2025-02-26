@@ -157,6 +157,7 @@ export async function processCCTPBurnEventLog(event: DepositForBurnEvent, origin
 
     const amount = Number(event.amount)
     if (agoricForwardingAcct.recipient != UNKNOWN_FA) {
+        logger.debug(`New Agoric destined CCTP event detected with hash ${event.transactionHash}`)
         incrementEventsCount(originChain)
         incrementTotalAmount(originChain, amount)
     }

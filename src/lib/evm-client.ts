@@ -74,3 +74,25 @@ export const getWsProvider = (chain: ChainConfig): WebSocketProvider => {
 
   return providers[chain.name];
 };
+
+/**
+ * Returns the block timestamp
+ * @param wsProvider the ws provider
+ * @param blockNumber the block number to get the timestamp for
+ * @param chain the chain name
+ * @returns the block timestamp
+ */
+export const getBlockTimestamp = async (wsProvider: WebSocketProvider, blockNumber: number, chain: string): Promise<number> => {
+
+  try {
+    const block = await wsProvider.getBlock(blockNumber);
+    if (!block) {
+      logger.error(`Block ${blockNumber} not found on ${chain} when getting timestamp`)
+    };
+
+    return block.timestamp; // Returns the block timestamp in seconds
+  } catch (error) {
+    logger.error(`Failed to fetch timestamp for block ${blockNumber} on ${chain}`)
+    return 0;
+  }
+}

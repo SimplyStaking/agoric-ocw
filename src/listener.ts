@@ -2,16 +2,16 @@ import { ethers } from 'ethers';
 import { processCCTPBurnEventLog } from './processor';
 import { logger } from './utils/logger';
 import { submitToAgoric } from './submitter';
-import { setRpcAlive, setRpcBlockHeight } from './metrics';
+import { setCurrentBlockRangeAmount, setRpcAlive, setRpcBlockHeight } from './metrics';
 import { chainConfig, ENV, EVENT_ABI, getChainFromConfig } from "./config/config";
 import { ChainConfig, DepositForBurnEvent, Hex, TransactionStatus } from './types';
 import { ContractEventPayload } from 'ethers';
-import { getWsProvider } from './lib/evm-client';
+import { getBlockTimestamp, getWsProvider } from './lib/evm-client';
 import { getLatestBlockHeight, vStoragePolicy } from './lib/agoric';
 import { getAllHeights, getTransactionsToBeSentForChain, setHeightForChain } from './lib/db';
 import { backfillChain } from './backfill';
 import { PROD } from './constants';
-import { addBlockRangeStateEntry, blockRangeAmountState } from './state';
+import { addBlockRangeStateEntry, blockRangeAmountState, getTotalSumForChainBlockRangeAmount } from './state';
 import { submissionQueue } from './queue';
 
 /**
@@ -34,6 +34,8 @@ export function listen(chain: ChainConfig) {
         if (Number(destinationDomain) === 4) { // Filter by specific destination domain
           setRpcAlive(name, true);
 
+          let timestamp = await getBlockTimestamp(wsProvider, event.log.blockNumber, name);
+
           // Create a log object with details needed for processing
           const log: DepositForBurnEvent = {
             amount, mintRecipient, destinationDomain, destinationTokenMessenger,
@@ -41,7 +43,7 @@ export function listen(chain: ChainConfig) {
             blockHash: event.log.blockHash as Hex,
             blockNumber: BigInt(event.log.blockNumber),
             removed: event.log.removed,
-            blockTimestamp: BigInt(0),
+            blockTimestamp: BigInt(timestamp),
             sender: depositor
           };
 
@@ -100,6 +102,10 @@ export function listen(chain: ChainConfig) {
 
     // Update block range state with new block
     addBlockRangeStateEntry(chain.name, blockNumber, vStoragePolicy.chainPolicies[chain.name].rateLimits.blockWindowSize)
+
+    // Update current block range
+    const currentBlockRangeAmount = getTotalSumForChainBlockRangeAmount(chain.name)
+    setCurrentBlockRangeAmount(chain.name, currentBlockRangeAmount)
   });
 
 }
