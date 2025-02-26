@@ -38,6 +38,7 @@ export enum SubmissionStatus {
   INFLIGHT = 'INFLIGHT',
   SUBMITTED = 'SUBMITTED',
   CANCELLED = 'CANCELLED',
+  FAILED = 'FAILED',
 }
 
 export type DepositForBurnEvent = {

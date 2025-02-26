@@ -355,7 +355,7 @@ export const getNewOffers = async () => {
     const follower = await makeWalletFollower(WATCHER_WALLET_ADDRESS);
 
     let count = 0;
-    let firstId = null;
+    let firstId = 0;
     // Loop through offers, starting from latest
     for await (const followerElement of iterateReverse(follower)) {
         // If we hit max to loop, break out of loop
@@ -367,31 +367,38 @@ export const getNewOffers = async () => {
             // Get id
             const id = offer.value.status.id;
 
+            firstId = !isNaN(id) && id > firstId ? id : firstId;
+
             // If the last visited ofer id is more recent than the current id
             if (lastOfferId && !isNaN(Number(lastOfferId)) && Number(lastOfferId) >= id) {
                 break;
             }
 
-            // If the offer is not errored and it is a SubmitEvidence
-            if (!offer.value.status.hasOwnProperty("error") && offer.value.status.invitationSpec.invitationMakerName == "SubmitEvidence") {
-                // if the first id, set it
-                if (!firstId) {
-                    firstId = id
+            // If it is a SubmitEvidence
+            if(offer.value.status.invitationSpec.invitationMakerName == "SubmitEvidence"){
+                // If the offer is not errored  
+                if (!offer.value.status.hasOwnProperty("error")) {
+                    if (!offers[id]) {
+                        offers[id] = offer.value.status.invitationSpec.invitationArgs[0]
+                    }
                 }
-                if (!offers[id]) {
-                    offers[id] = offer.value.status.invitationSpec.invitationArgs[0]
+                else if (offer.value.status.error.includes("conflicting evidence")){
+                    let details = offer.value.status.invitationSpec.invitationArgs[0]
+                    logger.error(`Found conflicting evidence submission for ${details.txHash}`)
+                    await updateSubmissionStatus(details.txHash, false, SubmissionStatus.FAILED)
+
                 }
             }
         }
         count++;
 
     }
-    // update latest id
-    await setLastOfferId(firstId)
+    
     const isNan = isNaN(Number(firstId))
-    if (!isNan && firstId) {
+    if (!isNan && firstId > 0) {
+        await setLastOfferId(String(firstId))
         setWatcherLastOfferId(WATCHER_WALLET_ADDRESS, firstId)
-        lastOfferId = firstId;
+        lastOfferId = String(firstId);
     }
     return Object.values(offers)
 };
