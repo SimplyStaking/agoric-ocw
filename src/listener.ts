@@ -69,7 +69,7 @@ export function listen(chain: ChainConfig) {
     if (blockNumber > currentHeight + 1) {
       logger.info(`Backfilling for ${chain.name} from ${currentHeight + 1}. This happened because there were missed blocks from WS before block ${blockNumber}.`)
       const chainConfig = await getChainFromConfig(chain.name)
-      await backfillChain(chainConfig!, currentHeight + 1)
+      await backfillChain(chainConfig!, currentHeight + 1, blockNumber)
     }
 
     const transactions = await getTransactionsToBeSentForChain(chain.name, blockNumber)

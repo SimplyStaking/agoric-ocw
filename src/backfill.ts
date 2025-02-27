@@ -15,20 +15,21 @@ import { PROD } from "./constants";
  * Backfills chain
  * @param chain The chain to backfill
  * @param fromBlock The block to backfill from
+ * @param toBlock The block to backfill to
  */
 export async function backfillChain(
   chain: ChainConfig,
   fromBlock: number,
+  toBlock?: number,
 ) {
 
   const wsProvider = getWsProvider(chain)
   const contract = new ethers.Contract(chain.contractAddress, EVENT_ABI, wsProvider);
 
-  logger.debug(`Getting event logs on ${chain.name} from block ${fromBlock}`)
-
   // Get logs for the 'DepositForBurn' event from the specified block onwards
   try {
-    const latestBlockNumber = await wsProvider.getBlockNumber();
+    const latestBlockNumber = toBlock ? toBlock : await wsProvider.getBlockNumber();
+    logger.debug(`Getting event logs on ${chain.name} from block ${fromBlock} to block ${latestBlockNumber}`)
 
     const logs = await wsProvider.getLogs({
       fromBlock, // Starting block number
