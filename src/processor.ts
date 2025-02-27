@@ -99,7 +99,7 @@ export async function processCCTPBurnEventLog(event: DepositForBurnEvent, origin
         return null;
     }
 
-    logger.info(`(TX ${event.transactionHash}) ${nobleAddress} is an Agoric forwarding address (${agoricForwardingAcct.channel} -> ${agoricForwardingAcct.recipient})`)
+    logger.info(`(TX ${event.transactionHash}) ${nobleAddress} ${agoricForwardingAcct.recipient == UNKNOWN_FA ? "could be": "is"} an Agoric forwarding address (${agoricForwardingAcct.channel} -> ${agoricForwardingAcct.recipient})`)
 
     // Get tx from DB if already there
     const tx = await getTransactionByHash(event.transactionHash, originChain)

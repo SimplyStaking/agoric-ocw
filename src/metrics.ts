@@ -108,6 +108,7 @@ export const setRpcBlockHeight = (network: string, height: number): void => {
  * @param network - The name of the network.
  */
 export const incrementEventsCount = async (network: string) => {
+    logger.debug(`Incrementing events count metric for ${network}`)
     eventsCount.inc({ network });
     const metric = await eventsCount.get();
     const values = metric.values;
