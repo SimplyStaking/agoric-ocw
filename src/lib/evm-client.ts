@@ -6,8 +6,9 @@ import { ChainConfig } from '../types';
 import WebSocket from 'ws';
 import { setRpcAlive } from '../metrics';
 import { listen } from '../listener';
-import { RPC_RECONNECT_DELAY } from '../config/config';
+import { REQUESTS_INTERVAL, REQUESTS_RETRIES, RPC_RECONNECT_DELAY } from '../config/config';
 import { WebSocketProvider } from 'ethers';
+import { TIMEOUT_RESPONSE } from '@src/constants';
 
 
 // Define a type that maps string keys to WebSocketProvider values
@@ -75,6 +76,8 @@ export const getWsProvider = (chain: ChainConfig): WebSocketProvider => {
   return providers[chain.name];
 };
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 /**
  * Returns the block timestamp
  * @param wsProvider the ws provider
@@ -84,15 +87,49 @@ export const getWsProvider = (chain: ChainConfig): WebSocketProvider => {
  */
 export const getBlockTimestamp = async (wsProvider: WebSocketProvider, blockNumber: number, chain: string): Promise<number> => {
 
-  try {
-    const block = await wsProvider.getBlock(blockNumber);
-    if (!block) {
-      logger.error(`Block ${blockNumber} not found on ${chain} when getting timestamp`)
-    };
+  for (let i = 0; i < REQUESTS_RETRIES; i++) {
+    logger.debug(`Trying try ${i+1} getting block timestamp for block ${blockNumber} on ${chain}`)
+    try {
+      const block = await wsProvider.getBlock(blockNumber);
+      if (!block) {
+        logger.error(`Block ${blockNumber} not found on ${chain} when getting timestamp`)
+      };
 
-    return block.timestamp; // Returns the block timestamp in seconds
-  } catch (error) {
-    logger.error(`Failed to fetch timestamp for block ${blockNumber} on ${chain}`)
-    return 0;
+      return block!.timestamp; // Returns the block timestamp in seconds
+    } catch (error) {
+      logger.error(`Failed to fetch timestamp for block ${blockNumber} on ${chain}`)
+    }
+    await sleep(REQUESTS_INTERVAL * 1000);
   }
+
+  return 0;
+
 }
+
+/**
+ * Returns the transaction sender
+ * @param wsProvider the ws provider
+ * @param txHash thetx hash to get the sender for
+ * @param chain the chain name
+ * @returns the tx sender
+ */
+export const getTxSender = async (wsProvider: WebSocketProvider, txHash: string, chain: string): Promise<string> => {
+
+  for (let i = 0; i < REQUESTS_RETRIES; i++) {
+    logger.debug(`Trying try ${i+1} getting TX sender for tx ${txHash} on ${chain}`)
+    try {
+      const tx = await wsProvider.getTransaction(txHash);
+      if (!tx) {
+        logger.error(`Transaction ${txHash} not found on ${chain} when getting sender`)
+      };
+
+      return tx!.from; // Returns the tx sender
+    } catch (error) {
+      logger.error(`Failed to fetch tx sender for transaction ${txHash} on ${chain}`)
+    }
+    await sleep(REQUESTS_INTERVAL * 1000);
+  }
+
+  return TIMEOUT_RESPONSE;
+}
+

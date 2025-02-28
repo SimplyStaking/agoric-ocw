@@ -248,3 +248,21 @@ if (isNaN(MINUTES_HOLDING_UNKNOWN_FA)) {
   logger.error(`MINUTES_HOLDING_UNKNOWN_FA must be a valid number`)
   process.exit(1)
 }
+
+/**
+ * Holds retries for requests
+ */
+export const REQUESTS_RETRIES = Number(process.env.REQUESTS_RETRIES || '2');
+if (isNaN(REQUESTS_RETRIES)) {
+  logger.error(`REQUESTS_RETRIES must be a valid number`)
+  process.exit(1)
+}
+
+/**
+ * Holds interval in secons between requests
+ */
+export const REQUESTS_INTERVAL = Number(process.env.REQUESTS_INTERVAL || '1');
+if (isNaN(REQUESTS_INTERVAL)) {
+  logger.error(`REQUESTS_INTERVAL must be a valid number`)
+  process.exit(1)
+}
