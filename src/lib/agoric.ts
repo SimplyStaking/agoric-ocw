@@ -11,7 +11,7 @@ import {
     makeLeader,
 } from '@agoric/casting';
 import axios from "axios";
-import { setRpcBlockHeight, setWatcherLastOfferId } from "../metrics";
+import { incrementSubmissionErrors, setRpcBlockHeight, setWatcherLastOfferId } from "../metrics";
 import { addNobleAccount, getExpiredTransactionsWithInflightStatus, getLastOfferId, setLastOfferId, updateSubmissionStatus } from "./db";
 import { submissionQueue } from "../queue";
 import { EXPECTED_NOBLE_CHANNEL_ID, MARSHALLER, NFA_WORKER_ENDPOINT, PROD, TESTING_NOBLE_FA, TESTING_NOBLE_FA_ADDR, TESTING_NOBLE_FA_RECIPIENT } from "@src/constants";
@@ -382,11 +382,14 @@ export const getNewOffers = async () => {
                         offers[id] = offer.value.status.invitationSpec.invitationArgs[0]
                     }
                 }
-                else if (offer.value.status.error.includes("conflicting evidence")){
-                    let details = offer.value.status.invitationSpec.invitationArgs[0]
-                    logger.error(`Found conflicting evidence submission for ${details.txHash}`)
-                    await updateSubmissionStatus(details.txHash, false, SubmissionStatus.FAILED)
-
+                else{
+                    if (offer.value.status.error.includes("conflicting evidence")){
+                        let details = offer.value.status.invitationSpec.invitationArgs[0]
+                        logger.error(`Found conflicting evidence submission for ${details.txHash}`)
+                        await updateSubmissionStatus(details.txHash, false, SubmissionStatus.FAILED)
+    
+                    }
+                    await incrementSubmissionErrors();
                 }
             }
         }

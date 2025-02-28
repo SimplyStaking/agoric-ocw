@@ -69,6 +69,14 @@ const lastOfferSubmitted = new Gauge({
 });
 
 /**
+ * Gauge metric to track submission errors
+ */
+const submissionErrors = new Gauge({
+    name: 'submission_errors',
+    help: 'Shows the count of submission errors',
+});
+
+/**
  * Gauge metric to track the cumulated current block range tx amount
  */
 const currentBlockRangeAmount = new Gauge({
@@ -259,6 +267,13 @@ export const getCurrentBlockRangeAmount = async (network: string) => {
  */
 export const incrementMissedNFAs = async () => {
     missedWorkerNFA.inc();
+}
+
+/**
+ * Increments the submission errorsc by 1.
+ */
+export const incrementSubmissionErrors = async () => {
+    submissionErrors.inc();
 }
 
 // Exports the 'register' object for exposing metrics in index.js or other modules
