@@ -314,7 +314,7 @@ export const updateSubmissionStatus = async (
         {
             submissionStatus
         },
-        { new: true }
+        { new: true, upsert: true }
     );
 };
 
