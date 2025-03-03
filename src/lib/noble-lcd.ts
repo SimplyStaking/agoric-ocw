@@ -43,7 +43,7 @@ export const makeNobleLCD = ({
       }
       return data;
     } catch (e) {
-      logger.error(e);
+      logger.error(`Error while querying noble account: ${e}`);
       throw e;
     }
   },
