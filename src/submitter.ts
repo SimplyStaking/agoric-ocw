@@ -22,6 +22,12 @@ export async function submitToAgoric(evidence: CCTPTxEvidence, risksIdentified: 
         return
     }
 
+    // If already failed
+    if (submission && submission.submissionStatus == SubmissionStatus.FAILED){
+        logger.info(`Submission for TX ${evidence.txHash} has already failed`)
+        return
+    }
+
     if (evidence.status == TransactionStatus.REORGED) {
         logger.info(`REORGED TX: ${JSON.stringify(evidence)}`)
         // Set normal submission to cancelled

@@ -6,7 +6,7 @@ import { setCurrentBlockRangeAmount, setRpcAlive, setRpcBlockHeight } from './me
 import { chainConfig, ENV, EVENT_ABI, getChainFromConfig } from "./config/config";
 import { ChainConfig, DepositForBurnEvent, Hex, TransactionStatus } from './types';
 import { ContractEventPayload } from 'ethers';
-import { getBlockTimestamp, getWsProvider } from './lib/evm-client';
+import { getBlockTimestamp, getTxSender, getWsProvider } from './lib/evm-client';
 import { getLatestBlockHeight, vStoragePolicy } from './lib/agoric';
 import { getAllHeights, getTransactionsToBeSentForChain, setHeightForChain } from './lib/db';
 import { backfillChain } from './backfill';
@@ -34,7 +34,11 @@ export function listen(chain: ChainConfig) {
         if (Number(destinationDomain) === 4) { // Filter by specific destination domain
           setRpcAlive(name, true);
 
+          // get block timestamp
           let timestamp = await getBlockTimestamp(wsProvider, event.log.blockNumber, name);
+
+          // get transaction sender
+          const sender = await getTxSender(wsProvider, event.log.transactionHash, chain.name)
 
           // Create a log object with details needed for processing
           const log: DepositForBurnEvent = {
@@ -44,7 +48,7 @@ export function listen(chain: ChainConfig) {
             blockNumber: BigInt(event.log.blockNumber),
             removed: event.log.removed,
             blockTimestamp: BigInt(timestamp),
-            sender: depositor
+            sender: sender
           };
 
           // Process the event and submit if evidence is found

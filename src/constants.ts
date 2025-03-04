@@ -25,3 +25,4 @@ export const PORT = 3011;
 export const MARSHALLER = boardSlottingMarshaller();
 export const INVITATION_MAKERS_DESC = 'oracle operator invitation';
 export const NFA_WORKER_ENDPOINT = 'https://fastusdc-map.agoric-core.workers.dev';
+export const TIMEOUT_RESPONSE = 'TIMEOUT';
