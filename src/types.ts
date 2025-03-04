@@ -52,6 +52,7 @@ export type DepositForBurnEvent = {
   destinationDomain: number,
   destinationTokenMessenger: string,
   sender: string
+  depositor: string
 }
 
 export type ChainConfig = {

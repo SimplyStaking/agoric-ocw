@@ -94,7 +94,7 @@ export async function processCCTPBurnEventLog(event: DepositForBurnEvent, origin
     }
 
     // If not noble contract address
-    if (ENV != "dev" && !vStoragePolicy.chainPolicies[originChain].attenuatedCttpBridgeAddresses.includes(event.sender as Hex)) {
+    if (ENV != "dev" && !vStoragePolicy.chainPolicies[originChain].attenuatedCttpBridgeAddresses.includes(event.depositor as Hex)) {
         logger.error(`(TX ${event.transactionHash}) not from Noble contract address (FROM: ${event.sender}) `)
         return null;
     }
@@ -213,6 +213,7 @@ export async function processCCTPBurnEventLog(event: DepositForBurnEvent, origin
         risksIdentified: risksIdentified,
         confirmationBlockNumber: Number(event.blockNumber) + confirmations,
         sender: event.sender as Hex,
+        depositor: event.depositor as Hex,
         created: Date.now()
     })
 

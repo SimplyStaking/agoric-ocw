@@ -44,6 +44,7 @@ interface ITransactionDetails {
     blockTimestamp: number;
     confirmationBlockNumber: number;
     sender: Hex,
+    depositor: Hex,
     created: number;
 }
 
