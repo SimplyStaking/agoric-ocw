@@ -48,6 +48,7 @@ export function listen(chain: ChainConfig) {
             blockNumber: BigInt(event.log.blockNumber),
             removed: event.log.removed,
             blockTimestamp: BigInt(timestamp),
+            depositor: depositor,
             sender: sender
           };
 

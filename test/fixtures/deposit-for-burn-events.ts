@@ -12,7 +12,8 @@ export const DEPOSIT_FOR_BURN_EVENTS = {
     blockHash:
       '0x90d7343e04f8160892e94f02d6a9b9f255663ed0ac34caca98544c8143fee665',
     blockNumber: 21037663n,
-    sender: "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
+    sender: "0x19330d10D9Cc8751218eaf51E8885D058642E08B",
+    depositor: "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
     blockTimestamp: 10000000n,
     removed: false,
     amount: 100n,
@@ -32,6 +33,7 @@ export const DEPOSIT_FOR_BURN_EVENTS = {
     blockTimestamp: 10000000n,
     removed: false,
     sender: "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
+    depositor: "0x19330d10D9Cc8751218eaf51E8885D058642E08B",
     amount: 150000000n,
     mintRecipient:
       '0x000000000000000000000000b51194bf6854cae21885e6fbbbc1fde95c237f4b',
@@ -49,6 +51,7 @@ export const DEPOSIT_FOR_BURN_EVENTS = {
     blockTimestamp: 10000000n,
     removed: false,
     sender: "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
+    depositor: "0x19330d10D9Cc8751218eaf51E8885D058642E08B",
     amount: 150000000n,
     mintRecipient:
       '0x00000000000000000000000059e2ca9f3107df7fffdcd33b0f57f3ae775c6179',
@@ -67,6 +70,7 @@ export const DEPOSIT_FOR_BURN_EVENTS = {
     removed: false,
     amount: 150000000n,
     sender: "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
+    depositor: "0x19330d10D9Cc8751218eaf51E8885D058642E08B",
     mintRecipient:
       '0x000000000000000000000000c844b34da2f2c5905c6e9fbc56f2503089179b5f',
     destinationDomain: 4,

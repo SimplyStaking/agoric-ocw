@@ -74,6 +74,7 @@ export async function backfillChain(
               blockHash: log.blockHash as Hex,
               blockNumber: BigInt(log.blockNumber),
               removed: log.removed,
+              depositor: depositor,
               sender: sender,
               blockTimestamp: BigInt(timestamp)
             };

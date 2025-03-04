@@ -159,6 +159,7 @@ describe('processor Tests', () => {
   test('handles non-noble sender', async () => {
     const nonNobleSender = {
       ...DEPOSIT_FOR_BURN_EVENTS['agoric-forwarding-acct'],
+      depositor: "0x00000",
       sender: "0x00000"
     };
 
@@ -172,6 +173,7 @@ describe('processor Tests', () => {
     const nonNobleSender = {
       ...DEPOSIT_FOR_BURN_EVENTS['agoric-forwarding-acct'],
       sender: "0x00000",
+      depositor: "0x00000",
       amount: 100000n
     };
 
