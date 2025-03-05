@@ -312,9 +312,7 @@ export const updateSubmissionStatus = async (
     }
     return await Submission.findOneAndUpdate(
         { transactionHash, reorged },
-        {
-            submissionStatus
-        },
+        newValue,
         { new: true, upsert: true }
     );
 };

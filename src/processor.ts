@@ -143,7 +143,10 @@ export async function processCCTPBurnEventLog(event: DepositForBurnEvent, origin
         logger.debug(`TX ${event.transactionHash} on ${originChain} already processed`)
         return null;
     } else {
-        logger.debug(`No existing tx ${event.transactionHash} found on ${originChain}`)
+        if(!tx){
+            logger.debug(`No existing tx ${event.transactionHash} found on ${originChain}`)
+        }
+        logger.debug(`Existing tx ${event.transactionHash} found on ${originChain} with status ${tx?.status}`)
     }
 
     // Check for settlementAccount

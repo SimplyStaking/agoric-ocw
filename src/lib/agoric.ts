@@ -356,6 +356,7 @@ export const getNewOffers = async () => {
 
     let count = 0;
     let firstId = 0;
+    let failedTxs = [];
     // Loop through offers, starting from latest
     for await (const followerElement of iterateReverse(follower)) {
         // If we hit max to loop, break out of loop
@@ -375,19 +376,19 @@ export const getNewOffers = async () => {
             }
 
             // If it is a SubmitEvidence
-            if(offer.value.status.invitationSpec.invitationMakerName == "SubmitEvidence"){
+            if (offer.value.status.invitationSpec.invitationMakerName == "SubmitEvidence") {
                 // If the offer is not errored  
                 if (!offer.value.status.hasOwnProperty("error")) {
                     if (!offers[id]) {
                         offers[id] = offer.value.status.invitationSpec.invitationArgs[0]
                     }
                 }
-                else{
-                    if (offer.value.status.error.includes("conflicting evidence")){
+                else {
+                    if (offer.value.status.error.includes("conflicting evidence")) {
                         let details = offer.value.status.invitationSpec.invitationArgs[0]
                         logger.error(`Found conflicting evidence submission for ${details.txHash}`)
                         await updateSubmissionStatus(details.txHash, false, SubmissionStatus.FAILED)
-    
+                        failedTxs.push(details.txHash);
                     }
                     await incrementSubmissionErrors();
                 }
@@ -396,14 +397,19 @@ export const getNewOffers = async () => {
         count++;
 
     }
-    
+
     const isNan = isNaN(Number(firstId))
     if (!isNan && firstId > 0) {
         await setLastOfferId(String(firstId))
         setWatcherLastOfferId(WATCHER_WALLET_ADDRESS, firstId)
         lastOfferId = String(firstId);
     }
-    return Object.values(offers)
+
+    let succeededOffers = Object.fromEntries(
+        Object.entries(offers).filter(([_, details]) => !failedTxs.includes(details.txHash))
+    );
+
+    return Object.values(succeededOffers)
 };
 
 
