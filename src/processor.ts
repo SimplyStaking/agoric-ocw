@@ -139,9 +139,11 @@ export async function processCCTPBurnEventLog(event: DepositForBurnEvent, origin
     }
 
     // Check if tx exists
-    if (tx && tx?.status == TransactionStatus.CONFIRMED) {
+    if (tx && tx?.status != TransactionStatus.REORGED) {
         logger.debug(`TX ${event.transactionHash} on ${originChain} already processed`)
         return null;
+    } else {
+        logger.debug(`No existing tx ${event.transactionHash} found on ${originChain}`)
     }
 
     // Check for settlementAccount

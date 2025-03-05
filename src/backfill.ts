@@ -111,10 +111,11 @@ export async function backfill() {
   for (const chain in heights) {
     // If chain is found in agoric policy
     if (vStoragePolicy.chainPolicies[chain]) {
-      logger.info(`Backfilling for ${chain}`)
       const chainConfig = getChainFromConfig(chain)
       if (chainConfig) {
-        await backfillChain(chainConfig, heights[chain] || chainConfig.startHeight)
+        const startHeight = heights[chain] || chainConfig.startHeight
+        logger.info(`Backfilling on startup for ${chain} from block ${startHeight}`)
+        await backfillChain(chainConfig, startHeight)
       }
     }
   }
