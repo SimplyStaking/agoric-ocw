@@ -327,6 +327,7 @@ export const getSubmission = async (
     transactionHash: string,
     reorged: boolean
 ): Promise<ISubmission | null> => {
+    logger.debug(`Getting submission with txHash ${transactionHash} from DB`);
     const submission = await Submission.findOne({ transactionHash, reorged });
     return submission ? submission : null;
 };

@@ -72,7 +72,7 @@ export function listen(chain: ChainConfig) {
     const currentDbHeight = currentDBHeights ? currentDBHeights[chain.name] : 0
     const currentMetricHeight = await getRpcBlockHeight(chain.name)
     const maxStateHeight = Math.max(currentDbHeight, currentMetricHeight)
-    const currentHeight = currentDBHeights ? maxStateHeight : getChainFromConfig(chain.name)?.startHeight || 0;
+    const currentHeight = maxStateHeight > 0 ? maxStateHeight : getChainFromConfig(chain.name)?.startHeight || 0;
 
     // Only perform backfill if the WS subsription skips a hieght
     if (blockNumber > currentHeight + 1) {
