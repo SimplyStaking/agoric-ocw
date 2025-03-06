@@ -112,6 +112,24 @@ export const setRpcBlockHeight = (network: string, height: number): void => {
 };
 
 /**
+ * Gets the latest RPC height for a specific network.
+ * @param network - The name of the network.
+ */
+export const getRpcBlockHeight = async (network: string) => {
+    const metric = await rpcBlockHeight.get();
+    const values = metric.values;
+
+    for (const value in values) {
+        const labelNetwork = String(values[value].labels.network)
+        if (labelNetwork == network) {
+            return Number(values[value].value)
+        }
+    }
+
+    return 0
+};
+
+/**
  * Increments the eventsCount metric by 1 for a specific network.
  * @param network - The name of the network.
  */

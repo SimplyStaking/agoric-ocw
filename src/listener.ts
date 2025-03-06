@@ -2,7 +2,7 @@ import { ethers } from 'ethers';
 import { processCCTPBurnEventLog } from './processor';
 import { logger } from './utils/logger';
 import { submitToAgoric } from './submitter';
-import { setCurrentBlockRangeAmount, setRpcAlive, setRpcBlockHeight } from './metrics';
+import { getRpcBlockHeight, setCurrentBlockRangeAmount, setRpcAlive, setRpcBlockHeight } from './metrics';
 import { chainConfig, ENV, EVENT_ABI, getChainFromConfig } from "./config/config";
 import { ChainConfig, DepositForBurnEvent, Hex, TransactionStatus } from './types';
 import { ContractEventPayload } from 'ethers';
@@ -67,11 +67,16 @@ export function listen(chain: ChainConfig) {
   wsProvider.on("block", async (blockNumber) => {
     logger.debug(`New block from ${chain.name}: ${blockNumber}`)
 
-    const currentHeights = await getAllHeights()
-    const currentHeight = currentHeights ? currentHeights[chain.name] : getChainFromConfig(chain.name)?.startHeight || 0;
+    // Get heights from db
+    const currentDBHeights = await getAllHeights()
+    const currentDbHeight = currentDBHeights ? currentDBHeights[chain.name] : 0
+    const currentMetricHeight = await getRpcBlockHeight(chain.name)
+    const maxStateHeight = Math.max(currentDbHeight, currentMetricHeight)
+    const currentHeight = currentDBHeights ? maxStateHeight : getChainFromConfig(chain.name)?.startHeight || 0;
 
     // Only perform backfill if the WS subsription skips a hieght
     if (blockNumber > currentHeight + 1) {
+      logger.debug(`Current height for ${chain.name}: DB -> ${currentDbHeight}, State -> ${currentMetricHeight}, Max -> ${maxStateHeight}`)
       logger.info(`Backfilling for ${chain.name} from ${currentHeight + 1}. This happened because there were missed blocks from WS before block ${blockNumber}.`)
       const chainConfig = await getChainFromConfig(chain.name)
       await backfillChain(chainConfig!, currentHeight + 1, blockNumber)
