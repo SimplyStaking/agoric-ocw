@@ -32,3 +32,12 @@ services:
       - "~/.agoric:/app/.agoric"
       - "./.env:/app/.env"
     command: ["node_modules/.bin/tsx", "./src/index.ts"]
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # Access Docker logs
+      - ./promtail-config.yml:/etc/promtail/promtail.yml  # Promtail config
+      - ./promtail/positions.yaml:/tmp/positions.yaml  # Store positions
+    command:
+      - -config.file=/etc/promtail/promtail.yml
