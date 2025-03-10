@@ -185,7 +185,7 @@ export const AGORIC_RPC_CHECK_INTERVAL = process.env.AGORIC_RPC_CHECK_INTERVAL |
  */
 export function nextActiveAgoricRPC() {
   // If there are more
-  if (ACTIVE_AGORIC_RPC_INDEX != AGORIC_RPCS.length) {
+  if (ACTIVE_AGORIC_RPC_INDEX < AGORIC_RPCS.length -1) {
     ACTIVE_AGORIC_RPC_INDEX++
   }
   else {

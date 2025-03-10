@@ -43,6 +43,7 @@ function createWebSocket(chain: ChainConfig) {
   });
 
   ws.on("error", (error) => {
+    setRpcAlive(chain.name, false)
     logger.error(`WebSocket error on ${chain.name}: ${error}`);
   });
 
