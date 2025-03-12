@@ -11,7 +11,7 @@ import { getLatestBlockHeight, vStoragePolicy } from './lib/agoric';
 import { getAllHeights, getTransactionsToBeSentForChain, setHeightForChain } from './lib/db';
 import { backfillChain } from './backfill';
 import { PROD } from './constants';
-import { addBlockRangeStateEntry, blockRangeAmountState, getTotalSumForChainBlockRangeAmount } from './state';
+import { addBlockRangeStateEntry, blockRangeAmountState, getTotalSumForChainBlockRangeAmount, setBlockHeightUpdateTimestamp } from './state';
 import { submissionQueue } from './queue';
 
 /**
@@ -86,8 +86,9 @@ export function listen(chain: ChainConfig) {
 
     // At this point, backfilling is complete and transactions are added to the DB
     // We can set the height here before the submissions just in case submissions is slow to avoid backfilling again if a new block comes in before submissions are finished
-    setRpcAlive(name, true);
-    setRpcBlockHeight(name, blockNumber)
+    setRpcAlive(chain.name, true);
+    setRpcBlockHeight(chain.name, blockNumber)
+    setBlockHeightUpdateTimestamp(chain.name);
 
     // Set height in DB
     await setHeightForChain(chain.name, blockNumber);

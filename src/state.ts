@@ -1,5 +1,5 @@
 import { AGORIC_LCD_URL, WATCHER_WALLET_ADDRESS } from "./config/config";
-import { AccountDetails, AccountResponse, BlockRangeAmountState, ChainBlockRangeAmountState } from "./types";
+import { AccountDetails, AccountResponse, BlockHeightUpdateTimestamp, BlockRangeAmountState, ChainBlockRangeAmountState } from "./types";
 import axios from "axios";
 import { logger } from "./utils/logger";
 
@@ -8,6 +8,9 @@ export let watcherAccount: AccountDetails;
 
 // Holds the state for the block range amounts
 export let blockRangeAmountState: BlockRangeAmountState = {};
+
+// Holds timestamp of latest block for a chain
+export let blockHeightUpdateTimestampState: BlockHeightUpdateTimestamp = {}
 
 /**
  * Fetches account details from the specified endpoint and extracts
@@ -143,4 +146,33 @@ export function setChainEntries(chain: string, entries: ChainBlockRangeAmountSta
     }
     // Replace the existing entries with the new entries
     blockRangeAmountState[chain].entries = entries;
+}
+
+/**
+ * Sets the time for a height update for a chain
+ * @param chain chain name
+ */
+export const setBlockHeightUpdateTimestamp = (chain: string) => {
+    let now = new Date()
+    blockHeightUpdateTimestampState[chain] = now.getTime();
+}
+
+/**
+ * Checks if the last block height update happened more than 1 minutes ago
+ * @param chain chain name
+ * @returns true if the last block height update happened more than 1 minutes ago
+ */
+export const isChainBlockHeightStale = (chain: string) => {
+    let now = new Date()
+    // 1 minutes
+    const interval = 1 * 60 * 1000
+    
+    let lastRPCUpdate = blockHeightUpdateTimestampState[chain] || 0
+
+    if((now.getTime() - interval) > lastRPCUpdate){
+        logger.debug(`${chain} RPC height is currently stalled. Now: ${now.getTime()}, lastRPCUpdateTimestamp: ${lastRPCUpdate}`)
+        return true
+    }
+
+    return false;
 }

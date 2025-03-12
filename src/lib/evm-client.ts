@@ -6,9 +6,11 @@ import { ChainConfig } from '../types';
 import WebSocket from 'ws';
 import { setRpcAlive } from '../metrics';
 import { listen } from '../listener';
-import { REQUESTS_INTERVAL, REQUESTS_RETRIES, RPC_RECONNECT_DELAY } from '../config/config';
+import { getChainFromConfig, REQUESTS_INTERVAL, REQUESTS_RETRIES, RPC_RECONNECT_DELAY } from '../config/config';
 import { WebSocketProvider } from 'ethers';
 import { TIMEOUT_RESPONSE } from '@src/constants';
+import { vStoragePolicy } from './agoric';
+import { isChainBlockHeightStale } from '@src/state';
 
 
 // Define a type that maps string keys to WebSocketProvider values
@@ -134,3 +136,35 @@ export const getTxSender = async (wsProvider: WebSocketProvider, txHash: string,
   return TIMEOUT_RESPONSE;
 }
 
+/**
+ * Refreshed a connection for a chain
+ * @param chain chain name
+ */
+export const refreshConnection = (chain: string) =>
+{
+  logger.debug(`Refreshing connection for ${chain}`)
+  let config = getChainFromConfig(chain)
+  if(!config){
+    logger.error(`Could not find config for chain ${chain} when refreshing connection`)
+    return
+  }
+
+  providers[chain].websocket.close();
+  // providers[chain] = makeWebSocketProvider(config);
+  // listen(config);
+}
+
+/**
+ * This function checks if there were new blocks in the past X minutes for each chain
+ * and if not, it attempts a reconnection
+ */
+export const startRPCChecker = () => {
+  setInterval(() => {
+    // For each chain
+    for (const chain in vStoragePolicy.chainPolicies) {
+      if(isChainBlockHeightStale(chain)){
+        refreshConnection(chain);
+      }
+    }
+  }, 60 * 1000)
+}

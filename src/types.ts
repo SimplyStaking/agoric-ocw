@@ -174,6 +174,7 @@ export type ChainBlockRangeAmountState = {
 };
 
 export type BlockRangeAmountState = Record<string, { entries: ChainBlockRangeAmountState[] }>;
+export type BlockHeightUpdateTimestamp = Record<string, number>;
 
 export type AccountResponse = {
   account: {

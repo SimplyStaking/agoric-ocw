@@ -14,6 +14,7 @@ import apiRouter from './api';
 import { createNobleWebSocket } from './lib/noble-lcd';
 import { PORT } from './constants';
 import { getAgoricWatcherAccountDetails } from './state';
+import { startRPCChecker } from './lib/evm-client';
 
 const app = express();
 
@@ -63,6 +64,10 @@ const main = async () => {
   // Start multi chain listener
   logger.info("Starting Multi chain listener...")
   await startMultiChainListener()
+
+  // Start RPC checker
+  logger.info("Starting RPC Checker...")
+  await startRPCChecker()
 }
 
 try {
