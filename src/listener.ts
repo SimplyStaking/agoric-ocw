@@ -69,8 +69,13 @@ export function listen(chain: ChainConfig) {
 
     // Get heights from db
     const currentDBHeights = await getAllHeights()
-    const currentDbHeight = currentDBHeights ? currentDBHeights[chain.name] : 0
-    const currentMetricHeight = await getRpcBlockHeight(chain.name)
+    let currentDbHeight = currentDBHeights ? currentDBHeights[chain.name] : 0
+    let currentMetricHeight = await getRpcBlockHeight(chain.name)
+    
+    // Change to 0 if NaN
+    currentDbHeight = isNaN(currentDbHeight) ? 0 : currentDbHeight
+    currentMetricHeight = isNaN(currentMetricHeight) ? 0 : currentMetricHeight
+
     const maxStateHeight = Math.max(currentDbHeight, currentMetricHeight)
     const currentHeight = maxStateHeight > 0 ? maxStateHeight : getChainFromConfig(chain.name)?.startHeight || 0;
 
