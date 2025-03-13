@@ -10,7 +10,7 @@ import { getChainFromConfig, REQUESTS_INTERVAL, REQUESTS_RETRIES, RPC_RECONNECT_
 import { WebSocketProvider } from 'ethers';
 import { TIMEOUT_RESPONSE } from '@src/constants';
 import { vStoragePolicy } from './agoric';
-import { isChainBlockHeightStale } from '@src/state';
+import { initialiseBlockRangeAmounts, isChainBlockHeightStale } from '@src/state';
 
 
 // Define a type that maps string keys to WebSocketProvider values
@@ -38,8 +38,13 @@ function createWebSocket(chain: ChainConfig) {
     logger.error(`Disconnected on ${chain.name}. Reconnecting...`);
     setRpcAlive(chain.name, false)
 
-    setTimeout(() => {
+    setTimeout(async () => {
       providers[chain.name] = makeWebSocketProvider(chain);
+      
+      let currentBlock = await providers[chain.name].getBlockNumber();
+      // Initialise current block range for chain
+      await initialiseBlockRangeAmounts(chain.name, currentBlock)
+
       listen(chain);
     }, RPC_RECONNECT_DELAY * 1000);
   });
@@ -150,8 +155,6 @@ export const refreshConnection = (chain: string) =>
   }
 
   providers[chain].websocket.close();
-  // providers[chain] = makeWebSocketProvider(config);
-  // listen(config);
 }
 
 /**
