@@ -1,0 +1,67 @@
+groups:
+  - name: agoricocw
+    rules:
+      - alert: dead-rpc
+        expr: rpc_alive{} == 0
+        for: 5m
+        annotations:
+          title: 'Agoric OCW: {{ $labels.job }}: {{ $labels.network }} RPC not alive'
+          description: '{{ $labels.job }} RPC for {{ $labels.network }} is not alive.'
+        labels:
+          service: 'agoricOCW'
+          priority: 'P1'
+      - alert: rpc-height-not-increasing
+        expr: increase(rpc_height{}[5m]) == 0
+        for: 10m
+        annotations:
+          title: 'Agoric OCW: {{ $labels.job }}: {{ $labels.network }} RPC height not increasing'
+          description: '{{ $labels.job }} RPC height for {{ $labels.network }} is not increasing.'
+        labels:
+          service: 'agoricOCW'
+          priority: 'P1'
+      - alert: no-agoric-rpc
+        expr: count by(job)(agoric_active_rpc == 1) == 0
+        for: 10m
+        annotations:
+          title: 'Agoric OCW: {{ $labels.job }}: No active agoric RPC'
+          description: '{{ $labels.job }} has no active agoric rpc.'
+        labels:
+          service: 'agoricOCW'
+          priority: 'P1'
+      - alert: nfa-worker-missed
+        expr: increase(missed_worker_nfa{}[5m]) > 0
+        for: 2m
+        annotations:
+          title: 'Agoric OCW: {{ $labels.job }}: New Missed Worker NFA'
+          description: '{{ $labels.job }} has a new worker missed NFA.'
+        labels:
+          service: 'agoricOCW'
+          priority: 'P1'
+      - alert: low-balance-p3
+        expr: abs((watcher_balance{} - 100000) / (-1*delta(watcher_balance{}[1d]))) < 3 and delta(watcher_balance{}[1d]) < 0
+        for: 10m
+        annotations:
+          title: 'Agoric Oracle: {{ $labels.oracleName }}: {{ $labels.brand }} Balance finishes in 3 days'
+          description: '{{ $labels.oracleName }} will run out of {{ $labels.brand }} in 3 days.'
+        labels:
+          service: 'agoricOCW'
+          priority: 'P3'
+      - alert: low-balance-p2
+        expr: abs((watcher_balance{} - 100000) / (-1*delta(watcher_balance{}[1d]))) < 1 and delta(watcher_balance{}[1d]) < 0
+        for: 10m
+        annotations:
+          title: 'Agoric Oracle: {{ $labels.oracleName }}: {{ $labels.brand }} Balance finishes in 1 day'
+          description: '{{ $labels.oracleName }} will run out of {{ $labels.brand }} in 1 day.'
+        labels:
+          service: 'agoricOCW'
+          priority: 'P2'
+      - alert: low-balance-p1
+        expr: abs((watcher_balance{} - 100000) / (-1*delta(watcher_balance{}[1h]))) < 2 and delta(watcher_balance{}[1h]) < 0
+        for: 10m
+        annotations:
+          title: 'Agoric Oracle: {{ $labels.oracleName }}: {{ $labels.brand }} Balance finishes in 2 hours'
+          description: '{{ $labels.oracleName }} will run out of {{ $labels.brand }} in 2 hours.'
+        labels:
+          service: 'agoricOCW'
+          priority: 'P1'
+      
