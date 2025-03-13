@@ -88,7 +88,7 @@ export function listen(chain: ChainConfig) {
     }
 
     const transactions = await getTransactionsToBeSentForChain(chain.name, blockNumber)
-
+    logger.debug(`Found ${transactions.length} unsubmitted transactions on ${chain.name}`)
     // At this point, backfilling is complete and transactions are added to the DB
     // We can set the height here before the submissions just in case submissions is slow to avoid backfilling again if a new block comes in before submissions are finished
     setRpcAlive(chain.name, true);

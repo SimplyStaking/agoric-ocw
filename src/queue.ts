@@ -10,6 +10,7 @@ export const makeSubmissionQueue = () => {
 
     const addToQueue = (evidence: CCTPTxEvidence, risksIdentified: string[]) => {
         if (inQueue.has(evidence.txHash)) return;
+        logger.debug(`Adding TX ${evidence.txHash} from ${evidence.chainId} to the queue`);
         queue.push({ evidence, risksIdentified });
         inQueue.add(evidence.txHash);
         if (!isProcessing) processQueue();
