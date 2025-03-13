@@ -196,7 +196,7 @@ describe('processor Tests', () => {
       forwardingAddress: SCENARIOS.AGORIC_PLUS_ADDR,
       forwardingChannel: EXPECTED_NOBLE_CHANNEL_ID,
       recipientAddress:
-        'agoric10rchphk2al7nk87vwfyu87pjxwyxnw7aw98hkv4fdd2heurszf8n06wy8az423padaek6me38qekget2vdhx66mtvy6kg7nrw5uhsaekd4uhwufswqex6dtsv44hxv3cd4jkuqpq54ew3p',
+        'agoric10rchpn5w8xzcrczpvxvkpw7edh8txcjgpyh4rzu400q8z5mm6ccqz7ew8az423padaek6me38qekget2vdhx66mtvy6kg7nrw5uhsaekd4uhwufswqex6dtsv44hxv3cd4jkuqpqrc9597',
       sender: "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
       txHash:
         '0xc81bc6105b60a234c7c50ac17816ebcd5561d366df8bf3be59ff387552761702',

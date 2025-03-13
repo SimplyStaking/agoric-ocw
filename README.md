@@ -77,10 +77,8 @@ foundryup
 1. Run a local agoric chain
 
 ```
-docker run -d -p 26657:26657 --name agoric-localtestchain \
-  -w /usr/src/upgrade-test-scripts \
-  --entrypoint /usr/src/upgrade-test-scripts/start_agd.sh \
-  simplystaking/agoric-fastusdc-test-chain:test
+node_modules/.bin/tsx ./scripts/accept.ts > acceptWatcher.json
+docker run -d -p 26657:26657 -p 1317:1317 -v /home/node/agoric-ocw/acceptWatcher.json:/usr/src/acceptWatcher.json --name agoric-localtestchainnew ghcr.io/agoric/agoric-3-proposals:latest
 ```
 
 2. Run an Ethereum Fork
@@ -91,8 +89,8 @@ anvil --fork-url <eth_mainnet_rpc> --block-time 5 --host 0.0.0.0
 
 3. Accept watcher invitation
 ```
-node_modules/.bin/tsx ./scripts/accept.ts > acceptWatcher.json
-./binaries/agoric wallet send --offer acceptWatcher.json --from agoric1ee9hr0jyrxhy999y755mp862ljgycmwyp4pl7q  --keyring-backend="test" --home="./binaries"
+docker exec -it agoric-localtestchainnew /bin/bash
+agoric wallet send --offer /usr/src/acceptWatcher.json --from agoric1ee9hr0jyrxhy999y755mp862ljgycmwyp4pl7q --keyring-backend="test" --home="~/.agoric"
 ```
 
 4. Perform CCTP transfers
