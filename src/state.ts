@@ -2,6 +2,9 @@ import { AGORIC_LCD_URL, WATCHER_WALLET_ADDRESS } from "./config/config";
 import { AccountDetails, AccountResponse, BlockHeightUpdateTimestamp, BlockRangeAmountState, ChainBlockRangeAmountState } from "./types";
 import axios from "axios";
 import { logger } from "./utils/logger";
+import { vStoragePolicy } from "./lib/agoric";
+import { getBlockSums } from "./lib/db";
+import { setCurrentBlockRangeAmount } from "./metrics";
 
 // Holds the watcher account state
 export let watcherAccount: AccountDetails;
@@ -175,4 +178,17 @@ export const isChainBlockHeightStale = (chain: string) => {
     }
 
     return false;
+}
+
+/**
+ * Initialises block range amounts on startup
+ * @param chain chain to set value for
+ * @param latestBlockNumber latest block number
+ */
+export const initialiseBlockRangeAmounts = async (chain: string, latestBlockNumber: number) => {
+    logger.debug(`Initialising current block range amount for ${chain}`)
+    const currentBlockRangeAmount =  await (await getBlockSums(chain, latestBlockNumber, vStoragePolicy.chainPolicies[chain].rateLimits.blockWindowSize)).totalSum;
+    incrementOrCreateBlock(chain, latestBlockNumber, currentBlockRangeAmount)
+    logger.debug(`Setting current block range amount for ${chain} to ${currentBlockRangeAmount}`)
+    setCurrentBlockRangeAmount(chain, currentBlockRangeAmount)
 }

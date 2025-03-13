@@ -464,13 +464,12 @@ export const setGaugeValue = async (
 export const getTransactionsToBeSentForChain = async (chain: string, currentHeight: number) => {
 
     // Aggregation pipeline
-    let blockThreshold = currentHeight - vStoragePolicy.chainPolicies[chain].confirmations
-    logger.debug(`Getting unsubmitted TXs on ${chain} that happened from block ${blockThreshold} backwards`)
+    logger.debug(`Getting unsubmitted TXs on ${chain} that should have been submitted before block ${currentHeight}`)
     const transactions = await Transaction.aggregate([
         {
             $match: {
                 chain: chain,
-                blockNumber: { $lte: blockThreshold },
+                confirmationBlockNumber: { $lte: currentHeight },
             },
         },
         {

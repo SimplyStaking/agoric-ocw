@@ -11,17 +11,21 @@ import { getLatestBlockHeight, vStoragePolicy } from './lib/agoric';
 import { getAllHeights, getTransactionsToBeSentForChain, setHeightForChain } from './lib/db';
 import { backfillChain } from './backfill';
 import { PROD } from './constants';
-import { addBlockRangeStateEntry, blockRangeAmountState, getTotalSumForChainBlockRangeAmount, setBlockHeightUpdateTimestamp } from './state';
+import { addBlockRangeStateEntry, blockRangeAmountState, getTotalSumForChainBlockRangeAmount, initialiseBlockRangeAmounts, setBlockHeightUpdateTimestamp } from './state';
 import { submissionQueue } from './queue';
 
 /**
  * Listens for `DepositForBurn` events and new blocks, and handles reconnections on error.
  * @param chain - Chain configuration containing contract address, chain name, and RPC URL.
  */
-export function listen(chain: ChainConfig) {
+export async function listen(chain: ChainConfig) {
   const { contractAddress, name, rpcUrl } = chain;
 
   let wsProvider = getWsProvider(chain)
+
+  let currentBlock = await wsProvider.getBlockNumber();
+  // Initialise current block range for chain
+  await initialiseBlockRangeAmounts(name, currentBlock)
 
   const contract = new ethers.Contract(contractAddress, EVENT_ABI, wsProvider);
 

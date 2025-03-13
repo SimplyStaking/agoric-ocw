@@ -1,6 +1,6 @@
 import { addRemovedTX, addTransaction, getBlockSums, getNobleAccount, getTransactionByHash, sumTransactionAmounts, updateTransactionStatus } from "./lib/db";
 import { getForwardingAccount, getNobleLCDClient, NobleLCD } from "./lib/noble-lcd";
-import { CCTPTxEvidence, DepositForBurnEvent, NobleAddress, OCWForwardingAccount, TransactionStatus, TxThreshold } from "./types";
+import { CCTPTxEvidence, ChainPolicy, DepositForBurnEvent, NobleAddress, OCWForwardingAccount, TransactionStatus, TxThreshold, VStorage } from "./types";
 import { logger } from "./utils/logger";
 import { incrementEventsCount, incrementRevertedCount, incrementTotalAmount, setCurrentBlockRangeAmount } from "./metrics";
 import { decodeAddress, queryWorkerForNFA, settlementAccount, vStoragePolicy } from "./lib/agoric";
@@ -13,12 +13,13 @@ import { decodeToNoble } from "./utils/address";
 /**
  * Function to get the confirmations needed for an amount
  * @param amount The amount for the TX
- * @param txThresholds The transaction thresholds for the chain
+ * @param policy The chain policy
  * @returns a number of confirmations or -1 if above the threshold
  */
-function getConfirmations(amount: number, txThresholds: TxThreshold[]): number {
-    if (!txThresholds || txThresholds.length < 0) {
-        return 2;
+function getConfirmations(amount: number, policy: ChainPolicy): number {
+    const txThresholds = policy.txThresholds
+    if (!txThresholds || txThresholds.length == 0) {
+        return policy.confirmations;
     }
 
     // Sort thresholds by maxAmount in ascending order
@@ -189,7 +190,7 @@ export async function processCCTPBurnEventLog(event: DepositForBurnEvent, origin
     }
 
     // Get confirmations for amount
-    const confirmations = getConfirmations(amount, vStoragePolicy.chainPolicies[originChain].txThresholds)
+    const confirmations = getConfirmations(amount, vStoragePolicy.chainPolicies[originChain])
 
     // If above thresholds
     if (confirmations == -1) {

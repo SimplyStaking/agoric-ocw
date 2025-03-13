@@ -259,7 +259,7 @@ export const setParams = async () => {
         settlementAccount = params.settlementAccount
     }
     else {
-        logger.error(`Failed to query parameters`)
+        logger.error(`Failed to query parameters from Agoric`)
     }
 }
 
@@ -282,7 +282,7 @@ export const initChainPolicyScraper = async () => {
 
     setInterval(async () => {
         await setParams();
-    }, Number(QUERY_PARAMS_INTERVAL) * 1000)
+    }, Number(QUERY_PARAMS_INTERVAL) * 60 * 1000)
 }
 
 /**
