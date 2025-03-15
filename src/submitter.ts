@@ -93,7 +93,7 @@ export async function submitToAgoric(evidence: CCTPTxEvidence, risksIdentified: 
     );
     incrementWatcherAccountSequenceNumber();
 
-    logger.info("Response: " + JSON.stringify(response))
+    logger.info(`Response for submission for TX ${evidence.txHash}: ${JSON.stringify(response)}`)
 
     // If transaction failed
     if (response.code == 0) {
