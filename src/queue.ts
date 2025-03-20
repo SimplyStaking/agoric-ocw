@@ -17,7 +17,10 @@ export const makeSubmissionQueue = () => {
     };
 
     const processQueue = async () => {
-        if (isProcessing) return;
+        if (isProcessing){
+            logger.debug(`Already processing queue`)
+            return;
+        } 
         isProcessing = true;
         let agoricRPCStatus = await getLatestBlockHeight()
 
