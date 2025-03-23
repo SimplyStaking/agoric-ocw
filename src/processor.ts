@@ -57,12 +57,16 @@ export const getOCWForwardingAccount =
 
         let workerNFA = await queryWorkerForNFA(address)
 
+        logger.debug(`worker NFA response for ${address}: ${JSON.stringify(workerNFA)}`)
+
         if (workerNFA) {
             logger.debug(`Found Noble Forwarding Account for ${address} from worker`)
             return workerNFA
         }
 
         let lcdNBA = await getForwardingAccount(nobleLCD, address)
+
+        logger.debug(`Noble query response for ${address}: ${JSON.stringify(lcdNBA)}`)
 
         if (lcdNBA) {
             return {
@@ -156,7 +160,6 @@ export async function processCCTPBurnEventLog(event: DepositForBurnEvent, origin
     const decodedAddress = decodeAddress(agoricForwardingAcct.recipient)
     if (!decodedAddress) {
         logger.error(`TX ${event.transactionHash} on ${originChain} with address ${agoricForwardingAcct.recipient} could not be decoded`)
-        return null;
     }
     else if (decodedAddress && decodedAddress.baseAddress != settlementAccount) {
         logger.error(`TX ${event.transactionHash} on ${originChain} with base address ${decodedAddress.baseAddress} is not the settlement account( address:${settlementAccount} )`)

@@ -32,14 +32,13 @@ export function decodeToNoble(encodedAddress: string): string {
   // Convert hex string back to bytes
   const decoded = Buffer.from(hexString, 'hex');
 
-  // Find the first non-zero byte to strip leading padding
-  let nonZeroIndex = 0;
-  while (nonZeroIndex < decoded.length && decoded[nonZeroIndex] === 0) {
-    nonZeroIndex++;
-  }
-  const rawAddress = decoded.slice(nonZeroIndex);
+  // Extract the last 20 bytes (this is the actual address)
+  const addressBytes = Buffer.allocUnsafe(20);
+  decoded.copy(addressBytes, 0, decoded.length - 20);
 
-  // Re-encode as Bech32
-  const words = bech32.toWords(rawAddress);
+  // Convert to bech32 words
+  const words = bech32.toWords(addressBytes);
+
+  // Convert to bech32 address
   return bech32.encode('noble', words);
 }

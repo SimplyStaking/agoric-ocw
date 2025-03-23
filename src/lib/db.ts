@@ -17,9 +17,10 @@ const connectDB = async (): Promise<void> => {
 
     try {
         // Connect to MongoDB using the connection string from config or fallback to localhost
-        await mongoose.connect(DB_URL || 'mongodb://localhost:27017/agoricOCW');
+        let url = DB_URL || 'mongodb://localhost:27017/agoricOCW'
+        await mongoose.connect(url);
         isConnected = true;  // Set connection flag to true once connected
-        logger.debug('Connected to MongoDB');
+        logger.debug(`Connected to MongoDB @ ${url}`);
     } catch (error) {
         logger.error('Error connecting to MongoDB:', error);
         process.exit(1); // Exit process if connection fails
@@ -469,6 +470,7 @@ export const getTransactionsToBeSentForChain = async (chain: string, currentHeig
         {
             $match: {
                 chain: chain,
+                recipientAddress: { $ne: UNKNOWN_FA },
                 confirmationBlockNumber: { $lte: currentHeight },
             },
         },

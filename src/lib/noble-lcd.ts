@@ -7,6 +7,7 @@ import { logger } from '../utils/logger';
 import { decodeAddress, vStoragePolicy } from './agoric';
 import { addNobleAccount, getUnknownFATransactionsSince, removeTransaction, updateTransactionRecipientandChannel } from './db';
 import WebSocket from 'ws';
+import { getOCWForwardingAccount } from '@src/processor';
 
 // Holds the Noble WS Provider
 export let nobleWsProvider: WebSocket;
@@ -177,7 +178,7 @@ export function createNobleWebSocket() {
       // For each transaction query the noble forwarding account
       for (const tx of txs) {
         const forwardingAddress = tx.forwardingAddress
-        const forwardingAccount = await getForwardingAccount(nobleClient, forwardingAddress as NobleAddress)
+        const forwardingAccount = await getOCWForwardingAccount(nobleClient, forwardingAddress as NobleAddress)
 
         // If null, discard the tx because it is not an agoric fa
         if (!forwardingAccount) {
