@@ -1,5 +1,6 @@
 node_modules
-*.log
+combined.log
+error.log
 .env
 foundry/out
 .vscode

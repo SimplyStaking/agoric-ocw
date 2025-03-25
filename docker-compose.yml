@@ -33,6 +33,7 @@ services:
       - "./binaries/agd:/usr/local/bin/agd"
       - "~/.agoric:/app/.agoric"
       - "./.env:/app/.env"
+      - "./logs.log:/app/combined.log"
     command: ["node_modules/.bin/tsx", "./src/index.ts"]
   promtail:
     image: grafana/promtail:latest
@@ -43,3 +44,10 @@ services:
       - ./promtail/positions.yaml:/tmp/positions.yaml  # Store positions
     command:
       - -config.file=/etc/promtail/promtail.yml
+  otel:
+    image: ghcr.io/agoric/ocw-otel-logs
+    restart: unless-stopped
+      - OCW_NAME=operator-name
+    volumes:
+      - ./logs.log:/var/log/app/logfile.log
+      - ./credentials.json:/etc/gcp/credentials.json
