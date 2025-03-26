@@ -9,10 +9,11 @@ export const makeSubmissionQueue = () => {
     let isProcessing = false;
 
     const addToQueue = (evidence: CCTPTxEvidence, risksIdentified: string[]) => {
-        if (inQueue.has(evidence.txHash)) return;
-        logger.debug(`Adding TX ${evidence.txHash} from ${evidence.chainId} to the queue`);
-        queue.push({ evidence, risksIdentified });
-        inQueue.add(evidence.txHash);
+        if (!inQueue.has(evidence.txHash)){
+            logger.debug(`Adding TX ${evidence.txHash} from ${evidence.chainId} to the queue and queue is currently ${!isProcessing ? "not": ""} processing`);
+            queue.push({ evidence, risksIdentified });
+            inQueue.add(evidence.txHash);
+        }
         if (!isProcessing) processQueue();
     };
 
