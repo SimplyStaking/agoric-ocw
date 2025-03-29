@@ -10,31 +10,39 @@ export const makeSubmissionQueue = () => {
 
     const addToQueue = (evidence: CCTPTxEvidence, risksIdentified: string[]) => {
         if (!inQueue.has(evidence.txHash)){
-            logger.debug(`Adding TX ${evidence.txHash} from ${evidence.chainId} to the queue and queue is currently ${!isProcessing ? "not": ""} processing`);
+            logger.debug(`TX ${evidence.txHash} from ${evidence.chainId} added to queue`);
             queue.push({ evidence, risksIdentified });
             inQueue.add(evidence.txHash);
+        }
+        else{
+            logger.debug(`TX ${evidence.txHash} from ${evidence.chainId} already in queue and queue length is ${queue.length}`);
         }
         if (!isProcessing) processQueue();
     };
 
     const processQueue = async () => {
         if (isProcessing){
-            logger.debug(`Already processing queue`)
+            logger.debug(`Already processing queue`);
             return;
         } 
         isProcessing = true;
-        let agoricRPCStatus = await getLatestBlockHeight()
+        let agoricRPCStatus = await getLatestBlockHeight();
 
         if (agoricRPCStatus.syncing) {
-            logger.warn(`Skipping submissions because Agoric RPC is still syncing on height ${agoricRPCStatus.height}`)
+            logger.warn(`Skipping submissions because Agoric RPC is still syncing on height ${agoricRPCStatus.height}`);
+            isProcessing = false;
             return
         }
 
         while (queue.length > 0) {
             const evidence = queue.shift();
-            if (!evidence) continue;
+            if (!evidence){
+                logger.debug(`No evidence to process in queue`)
+                continue;
+            }
 
             try {
+                logger.debug(`Submitting to agoric ${evidence.evidence.txHash} from queue`);
                 await submitToAgoric(evidence.evidence, evidence.risksIdentified, agoricRPCStatus);
                 logger.debug(`Successfully processed transaction ${evidence.evidence.txHash} from queue`);
                 inQueue.delete(evidence.evidence.txHash);
@@ -46,6 +54,7 @@ export const makeSubmissionQueue = () => {
         }
 
         isProcessing = false;
+        logger.debug("Nothing in queue, exiting from queue submission operations")
     };
 
     return { addToQueue, processQueue };
