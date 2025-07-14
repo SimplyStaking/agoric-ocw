@@ -15,7 +15,7 @@
   "license": "ISC",
   "dependencies": {
     "@agoric/casting": "^0.4.3-u18.2",
-    "@agoric/client-utils": "^0.1.1-dev-aa11d5c.0",
+    "@agoric/client-utils": "0.1.1-dev-bf2d699.0",
     "@agoric/cosmic-proto": "^0.5.0-u18.5",
     "@agoric/smart-wallet": "^0.5.4-u18.0",
     "@babel/preset-typescript": "^7.26.0",
