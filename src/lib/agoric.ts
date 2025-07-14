@@ -17,6 +17,7 @@ import { submissionQueue } from "../queue";
 import { EXPECTED_NOBLE_CHANNEL_ID, MARSHALLER, NFA_WORKER_ENDPOINT, PROD, TESTING_NOBLE_FA, TESTING_NOBLE_FA_ADDR, TESTING_NOBLE_FA_RECIPIENT } from "@src/constants";
 import { makeClientMarshaller } from "@src/utils/marshaller";
 import { decodeAddressHook } from "@agoric/cosmic-proto/address-hooks.js";
+import { RemotableObject } from "@endo/pass-style";
 
 // Holds the vstorage policy obtained from Agoric
 export let vStoragePolicy: VStorage = {
@@ -193,8 +194,11 @@ export const getInvitation = async () => {
         },
         getNetworkConfig()
     );
-    const agoricNames = await readPublished("agoricNames");
-    const fastUsdcBoardId = agoricNames.instance["fastUsdc"].getBoardId()
+    const namedInstances = await readPublished('agoricNames.instance');
+    const instance = namedInstances.find(
+      ([label, _instance]: [string, RemotableObject<any>]) => label === 'fastUsdc',
+    )?.[1];
+    const fastUsdcBoardId = instance.getBoardId()
 
     const current = await getCurrent(WATCHER_WALLET_ADDRESS, { readPublished });
     const invitations = current.offerToUsedInvitation;
