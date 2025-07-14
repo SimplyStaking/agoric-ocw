@@ -6,6 +6,7 @@ import { ACTIVE_AGORIC_RPC_INDEX, AGORIC_NETWORK, AGORIC_RPCS } from '../src/con
 import { BridgeAction, ExecuteOfferAction } from '@agoric/smart-wallet/src/smartWallet';
 import { OfferSpec } from '@agoric/smart-wallet/src/offers';
 import { INVITATION_MAKERS_DESC, MARSHALLER } from '../src/constants';
+import { RemotableObject } from '@endo/pass-style';
 
 /**
  * TOutputs the action to be executed
@@ -25,7 +26,10 @@ export const accept = async () => {
     const vsk = await makeVstorageKit({ fetch }, {
         rpcAddrs: [AGORIC_RPCS[ACTIVE_AGORIC_RPC_INDEX]], network: AGORIC_NETWORK
     });
-    const instance = vsk.agoricNames.instance.fastUsdc;
+    const namedInstances = await vsk.readPublished('agoricNames.instance');
+    const instance = namedInstances.find(
+      ([label, _instance]: [string, RemotableObject<any>]) => label === 'fastUsdc',
+    )?.[1];
     assert(instance, 'fastUsdc instance not in agoricNames');
 
     let offerId = `watcherAccept-${Date.now()}`
