@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM node:18 AS builder
+FROM node:20 AS builder
 
 # Set the working directory in the container
 WORKDIR /app
@@ -14,7 +14,7 @@ RUN yarn install --frozen-lockfile
 COPY . .
 
 # Stage 2: Runtime
-FROM node:18-bookworm-slim
+FROM node:20-bookworm-slim
 
 # Fix vulnerabilities
 RUN apt-get update && apt-get install --only-upgrade libc6 libgnutls30 iproute2 perl systemd -y
