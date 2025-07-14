@@ -25,7 +25,8 @@ export const accept = async () => {
     const vsk = await makeVstorageKit({ fetch }, {
         rpcAddrs: [AGORIC_RPCS[ACTIVE_AGORIC_RPC_INDEX]], network: AGORIC_NETWORK
     });
-    const instance = vsk.agoricNames.instance.fastUsdc;
+    const agoricNames = await vsk.readPublished('agoricNames');
+    const instance = agoricNames.instance.fastUsdc;
     assert(instance, 'fastUsdc instance not in agoricNames');
 
     let offerId = `watcherAccept-${Date.now()}`

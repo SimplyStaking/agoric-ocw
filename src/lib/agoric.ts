@@ -187,13 +187,13 @@ export const getCurrent = async (addr: string, { readPublished }: any) => {
  */
 export const getInvitation = async () => {
 
-    const { readPublished, agoricNames } = await makeVstorageKit(
+    const { readPublished } = await makeVstorageKit(
         {
             fetch,
         },
         getNetworkConfig()
     );
-
+    const agoricNames = await readPublished("agoricNames");
     const fastUsdcBoardId = agoricNames.instance["fastUsdc"].getBoardId()
 
     const current = await getCurrent(WATCHER_WALLET_ADDRESS, { readPublished });
@@ -230,13 +230,12 @@ export const queryParams = async () => {
     );
 
     try {
-        let capDataStr = await vstorage.readLatest("published.fastUsdc.feedPolicy")
-        const { value } = JSON.parse(capDataStr);
-        const specimen = JSON.parse(value);
+        let capDataObj = await vstorage.readLatest("published.fastUsdc.feedPolicy")
+        const specimen = JSON.parse(capDataObj.value);
         const { values } = specimen;
         const chainPolicyCapDataStr = values.map((s: any) => JSON.parse(s));
-        capDataStr = await vstorage.readLatest("published.fastUsdc")
-        const settlementAddressCapDataStr = JSON.parse(JSON.parse(capDataStr).value).values.map((s: any) => JSON.parse(s))
+        capDataObj = await vstorage.readLatest("published.fastUsdc")
+        const settlementAddressCapDataStr = JSON.parse(capDataObj.value).values.map((s: any) => JSON.parse(s))
         const chainPolicy = clientMarshaller.fromCapData(chainPolicyCapDataStr.at(-1)) as VStorage
         const policy = {
             chainPolicy: chainPolicy as VStorage,
