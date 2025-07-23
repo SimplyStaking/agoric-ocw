@@ -1,9 +1,9 @@
-import { ACTIVE_AGORIC_RPC_INDEX, AGORIC_NETWORK, AGORIC_RPCS, AGORIC_WS_RPCS, ENV, MAX_OFFERS_TO_LOOP, QUERY_PARAMS_INTERVAL, RPC_RECONNECT_DELAY, WATCHER_WALLET_ADDRESS, chainConfig, nextActiveAgoricRPC } from "../config/config";
+import { ACTIVE_AGORIC_RPC_INDEX, AGORIC_NETWORK, AGORIC_RPCS, AGORIC_WS_RPCS, ENV, MAX_OFFERS_TO_LOOP, QUERY_PARAMS_INTERVAL, RPC_RECONNECT_DELAY, WATCHER_WALLET_ADDRESS, nextActiveAgoricRPC, getFusdcFeedPolicy } from "../config/config";
 import { logger } from "../utils/logger";
 import WebSocket from 'ws';
 import { execSync } from 'child_process';
 import { makeVstorageKit } from '@agoric/client-utils';
-import { AgoricSubmissionResponse, CctpTxSubmission, NetworkConfig, NobleAddress, OCWForwardingAccount, SubmissionStatus, TransactionStatus, VStorage } from "../types";
+import { AgoricSubmissionResponse, CctpTxSubmission, FeedPolicy, NetworkConfig, NobleAddress, OCWForwardingAccount, SubmissionStatus, TransactionStatus, VStorage } from "../types";
 import { BridgeAction } from '@agoric/smart-wallet/src/smartWallet.js'
 import {
     iterateReverse,
@@ -222,7 +222,7 @@ export const getInvitation = async () => {
 
 /**
  * Queries chain parameters from vstorage
- * @returns {VStorage} the value from vstorage
+ * @returns {FeedPolicy|VStorage} the value from FastUsdc Config endpoint or From Vstorage as fallback
  */
 export const queryParams = async () => {
     // Read value from vstorage
@@ -234,13 +234,21 @@ export const queryParams = async () => {
     );
 
     try {
-        let capDataObj = await vstorage.readLatest("published.fastUsdc.feedPolicy")
-        const specimen = JSON.parse(capDataObj.value);
-        const { values } = specimen;
-        const chainPolicyCapDataStr = values.map((s: any) => JSON.parse(s));
+
+        let chainPolicy = null;
+        let capDataObj = null;
+        chainPolicy = await getFusdcFeedPolicy()
+        if (!chainPolicy) {
+            // Fallback read from vstorage
+            logger.warn("Reading feedPolicy from vstorage as fallback");
+            capDataObj = await vstorage.readLatest("published.fastUsdc.feedPolicy")
+            const specimen = JSON.parse(capDataObj.value);
+            const { values } = specimen;
+            const chainPolicyCapDataStr = values.map((s: any) => JSON.parse(s));
+            chainPolicy = clientMarshaller.fromCapData(chainPolicyCapDataStr.at(-1)) as VStorage
+        }
         capDataObj = await vstorage.readLatest("published.fastUsdc")
         const settlementAddressCapDataStr = JSON.parse(capDataObj.value).values.map((s: any) => JSON.parse(s))
-        const chainPolicy = clientMarshaller.fromCapData(chainPolicyCapDataStr.at(-1)) as VStorage
         const policy = {
             chainPolicy: chainPolicy as VStorage,
             settlementAccount: settlementAddressCapDataStr.at(-1).settlementAccount

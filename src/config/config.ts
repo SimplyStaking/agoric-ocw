@@ -1,5 +1,5 @@
 import { config } from 'dotenv';
-import { AgoricAddress, ChainConfig } from '../types';
+import { AgoricAddress, ChainConfig, FeedPolicy } from '../types';
 import { logger } from '../utils/logger';
 import { PROD } from '../constants';
 
@@ -111,6 +111,11 @@ export const NOBLE_RPC_WS_URL = process.env.NOBLE_RPC_WS_URL || 'https://noble-r
 export const DB_URL = process.env.DB_URL
 
 /**
+ * Holds the Fusdc Configuration Endpoint
+ */
+export const FUSDC_CONFIG_ENDPOINT = 'https://fastusdc-configurations.agoric.net'
+
+/**
  * Gets the chain config from an endpoint
  * @param endpoint endpoint url
  * @returns the Chain config or null if the endpoint is not found
@@ -123,6 +128,26 @@ export const getChainFromEndpoint = (endpoint: string) => {
   }
   return null
 }
+
+/**
+ * Gets the FastUsdc FeedPolicy from FUSDC_CONFIG_ENDPOINT
+ * @returns {?FeedPolicy} The FeedPolicy object or null if an error occurs
+ */
+export const getFusdcFeedPolicy = async () => {
+  try {
+    const response = await globalThis.fetch(`${FUSDC_CONFIG_ENDPOINT}/feedPolicy`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch feed policy: ${response.statusText}`);
+    }
+    const feedPolicy: FeedPolicy = await response.json()
+    return feedPolicy;
+  } catch (error) {
+    logger.error(`Error fetching feed policy: ${error}`);
+    return null
+  }
+}
+
+console.log(getFusdcFeedPolicy())
 
 /**
  * Gets the chain config from a name
