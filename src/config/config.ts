@@ -147,8 +147,6 @@ export const getFusdcFeedPolicy = async () => {
   }
 }
 
-console.log(getFusdcFeedPolicy())
-
 /**
  * Gets the chain config from a name
  * @param chainName chain name
