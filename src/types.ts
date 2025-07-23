@@ -93,6 +93,8 @@ export type VStorage = {
   nobleDomainId: number;
 };
 
+export type FeedPolicy = VStorage
+
 export interface CctpTxSubmission {
   aux: {
     forwardingChannel: IBCChannelID;
