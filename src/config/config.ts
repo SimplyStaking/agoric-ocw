@@ -130,24 +130,6 @@ export const getChainFromEndpoint = (endpoint: string) => {
 }
 
 /**
- * Gets the FastUsdc FeedPolicy from FUSDC_CONFIG_ENDPOINT
- * @returns {?FeedPolicy} The FeedPolicy object or null if an error occurs
- */
-export const getFusdcFeedPolicy = async () => {
-  try {
-    const response = await globalThis.fetch(`${FUSDC_CONFIG_ENDPOINT}/feedPolicy`);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch feed policy: ${response.statusText}`);
-    }
-    const feedPolicy: FeedPolicy = await response.json()
-    return feedPolicy;
-  } catch (error) {
-    logger.error(`Error fetching feed policy: ${error}`);
-    return null
-  }
-}
-
-/**
  * Gets the chain config from a name
  * @param chainName chain name
  * @returns the Chain config or null if the name is not found
