@@ -98,7 +98,7 @@ export async function submitToAgoric(evidence: CCTPTxEvidence, risksIdentified: 
     // If transaction failed
     if (response.code == 0) {
         logger.info(`Evidence sent successfully: ${response.txhash}`)
-        // Set submission as in flight
+        // Set submission axs in flight
         await addSubmission(String(id), evidence.txHash, evidence.status == TransactionStatus.REORGED, SubmissionStatus.INFLIGHT, timeoutHeight)
     }
     else {

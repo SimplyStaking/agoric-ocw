@@ -8,6 +8,7 @@ import { decodeAddress, vStoragePolicy } from './agoric';
 import { addNobleAccount, getUnknownFATransactionsSince, removeTransaction, updateTransactionRecipientandChannel } from './db';
 import WebSocket from 'ws';
 import { getOCWForwardingAccount } from '@src/processor';
+import { setBlockHeightUpdateTimestamp } from '@src/state';
 
 // Holds the Noble WS Provider
 export let nobleWsProvider: WebSocket;
@@ -168,6 +169,7 @@ export function createNobleWebSocket() {
     if (msgJSON.result.data) {
       const newHeight = Number(msgJSON.result.data.value.block.header.height)
       setRpcBlockHeight("Noble", newHeight)
+      setBlockHeightUpdateTimestamp("Noble");
       logger.debug(`New block from Noble: ${newHeight}`);
 
       // Get unknown transactions and query their forwarding address
@@ -217,3 +219,12 @@ export function createNobleWebSocket() {
     logger.error(`WebSocket error on Noble: ${error}`);
   });
 }
+
+/*
+* Refreshed a connection for noble
+*/
+export const refreshNobleConnection = () =>
+  {
+   logger.debug(`Refreshing connection for Noble`)
+   nobleWsProvider.close();
+  }

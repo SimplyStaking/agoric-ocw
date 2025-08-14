@@ -27,6 +27,7 @@ const providers: WebSocketProviderMap = {};
  * @returns A working ws connection
  */
 function createWebSocket(chain: ChainConfig) {
+  logger.debug(`Attempting ${chain.name} RPC connection to ${chain.rpcUrl}`)
   const ws = new WebSocket(chain.rpcUrl);
 
   ws.on("open", () => {
@@ -155,19 +156,4 @@ export const refreshConnection = (chain: string) =>
   }
 
   providers[chain].websocket.close();
-}
-
-/**
- * This function checks if there were new blocks in the past X minutes for each chain
- * and if not, it attempts a reconnection
- */
-export const startRPCChecker = () => {
-  setInterval(() => {
-    // For each chain
-    for (const chain in vStoragePolicy.chainPolicies) {
-      if(isChainBlockHeightStale(chain)){
-        refreshConnection(chain);
-      }
-    }
-  }, 60 * 1000)
 }

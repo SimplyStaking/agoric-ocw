@@ -17,6 +17,7 @@ import { submissionQueue } from "../queue";
 import { EXPECTED_NOBLE_CHANNEL_ID, MARSHALLER, NFA_WORKER_ENDPOINT, PROD, TESTING_NOBLE_FA, TESTING_NOBLE_FA_ADDR, TESTING_NOBLE_FA_RECIPIENT } from "@src/constants";
 import { makeClientMarshaller } from "@src/utils/marshaller";
 import { decodeAddressHook } from "@agoric/cosmic-proto/address-hooks.js";
+import { setBlockHeightUpdateTimestamp } from "@src/state";
 
 // Holds the vstorage policy obtained from Agoric
 export let vStoragePolicy: VStorage = {
@@ -52,6 +53,7 @@ const emptyCurrentRecord = {
  */
 export const createAgoricWebSocket = () => {
     let url = AGORIC_WS_RPCS[ACTIVE_AGORIC_RPC_INDEX]
+    logger.debug(`Attempting Agoric RPC connection to ${url}`)
     agoricWsProvider = new WebSocket(url);
 
     agoricWsProvider.on("open", () => {
@@ -65,10 +67,12 @@ export const createAgoricWebSocket = () => {
         if (msgJSON.result.data) {
             const newHeight = Number(msgJSON.result.data.value.block.header.height)
             setRpcBlockHeight("agoric", newHeight)
+            setBlockHeightUpdateTimestamp("agoric");
             const newOffers = await getNewOffers()
 
             // Loop through each offer and set them to submitted
             for (const offer of newOffers) {
+                logger.debug(`Setting offer ${offer.txHash} to submitted in block ${newHeight}`)
                 await updateSubmissionStatus(offer.txHash, false, SubmissionStatus.SUBMITTED)
             }
 
@@ -186,15 +190,18 @@ export const getCurrent = async (addr: string, { readPublished }: any) => {
  * Gets the fastUsdc invitation for the address
  */
 export const getInvitation = async () => {
+    logger.debug("Getting invitation for watcher")
 
-    const { readPublished, agoricNames } = await makeVstorageKit(
+    const { readPublished } = await makeVstorageKit(
         {
             fetch,
         },
         getNetworkConfig()
     );
-
-    const fastUsdcBoardId = agoricNames.instance["fastUsdc"].getBoardId()
+    const agoricNames = await readPublished("agoricNames.instance");
+    const fastUsdcBoardId = agoricNames.find(
+        ([label, _instance]) => label === 'fastUsdc',
+      )?.[1];
 
     const current = await getCurrent(WATCHER_WALLET_ADDRESS, { readPublished });
     const invitations = current.offerToUsedInvitation;
@@ -215,7 +222,6 @@ export const getInvitation = async () => {
     return watcherInvitation
 }
 
-
 /**
  * Queries chain parameters from vstorage
  * @returns {VStorage} the value from vstorage
@@ -230,13 +236,12 @@ export const queryParams = async () => {
     );
 
     try {
-        let capDataStr = await vstorage.readLatest("published.fastUsdc.feedPolicy")
-        const { value } = JSON.parse(capDataStr);
-        const specimen = JSON.parse(value);
+        let capDataObj = await vstorage.readLatest("published.fastUsdc.feedPolicy")
+        const specimen = JSON.parse(capDataObj.value);
         const { values } = specimen;
         const chainPolicyCapDataStr = values.map((s: any) => JSON.parse(s));
-        capDataStr = await vstorage.readLatest("published.fastUsdc")
-        const settlementAddressCapDataStr = JSON.parse(JSON.parse(capDataStr).value).values.map((s: any) => JSON.parse(s))
+        capDataObj = await vstorage.readLatest("published.fastUsdc")
+        const settlementAddressCapDataStr = JSON.parse(capDataObj.value).values.map((s: any) => JSON.parse(s))
         const chainPolicy = clientMarshaller.fromCapData(chainPolicyCapDataStr.at(-1)) as VStorage
         const policy = {
             chainPolicy: chainPolicy as VStorage,
@@ -555,4 +560,13 @@ export async function queryWorkerForNFA(address: NobleAddress) {
         logger.error(`Error querying NFA from worker: ${error}`);
         return null
     }
+}
+
+/*
+* Refreshed a connection for agoric
+*/
+export const refreshAgoricConnection = () =>
+{
+ logger.debug(`Refreshing connection for Agoric`)
+ agoricWsProvider.close();
 }

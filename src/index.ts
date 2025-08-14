@@ -14,7 +14,7 @@ import apiRouter from './api';
 import { createNobleWebSocket } from './lib/noble-lcd';
 import { PORT } from './constants';
 import { getAgoricWatcherAccountDetails } from './state';
-import { startRPCChecker } from './lib/evm-client';
+import { startRPCChecker } from './rpcChecker';
 
 const app = express();
 
@@ -46,10 +46,6 @@ const main = async () => {
     logger.error(`Did not find an accepted watcher invitation for ${WATCHER_WALLET_ADDRESS}. Please accept one`)
     process.exit(1)
   }
-
-  createAgoricWebSocket()
-  createNobleWebSocket()
-
   // Initialise gauges
   logger.info("Initialising gauges...")
   await intialiseGauges()
@@ -63,6 +59,8 @@ const main = async () => {
 
   // Start multi chain listener
   logger.info("Starting Multi chain listener...")
+  createAgoricWebSocket()
+  createNobleWebSocket()
   await startMultiChainListener()
 
   // Start RPC checker
