@@ -1,4 +1,4 @@
-import { ACTIVE_AGORIC_RPC_INDEX, AGORIC_NETWORK, AGORIC_RPCS, AGORIC_WS_RPCS, ENV, MAX_OFFERS_TO_LOOP, QUERY_PARAMS_INTERVAL, RPC_RECONNECT_DELAY, WATCHER_WALLET_ADDRESS, nextActiveAgoricRPC, getFusdcFeedPolicy } from "../config/config";
+import { ACTIVE_AGORIC_RPC_INDEX, AGORIC_NETWORK, AGORIC_RPCS, AGORIC_WS_RPCS, ENV, MAX_OFFERS_TO_LOOP, QUERY_PARAMS_INTERVAL, RPC_RECONNECT_DELAY, WATCHER_WALLET_ADDRESS, nextActiveAgoricRPC, FUSDC_CONFIG_ENDPOINT } from "../config/config";
 import { logger } from "../utils/logger";
 import WebSocket from 'ws';
 import { execSync } from 'child_process';
@@ -567,3 +567,21 @@ export async function queryWorkerForNFA(address: NobleAddress) {
         return null
     }
 }
+
+/**
+ * Gets the FastUsdc FeedPolicy from FUSDC_CONFIG_ENDPOINT
+ * @returns {?FeedPolicy} The FeedPolicy object or null if an error occurs
+ */
+export async function getFusdcFeedPolicy() {
+    try {
+      const response = await axios.get(`${FUSDC_CONFIG_ENDPOINT}/feedPolicy`);
+      if (!response.data || response.status != 200) {
+        throw new Error(`Failed to fetch feed policy: ${response.statusText}`);
+      }
+      const feedPolicy: FeedPolicy = await response.data
+      return feedPolicy;
+    } catch (error) {
+      logger.error(`Error fetching feed policy: ${error}`);
+      return null
+    }
+  }
