@@ -1,5 +1,5 @@
 import { config } from 'dotenv';
-import { AgoricAddress, ChainConfig } from '../types';
+import { AgoricAddress, ChainConfig, FeedPolicy } from '../types';
 import { logger } from '../utils/logger';
 import { PROD } from '../constants';
 
@@ -109,6 +109,11 @@ export const NOBLE_RPC_WS_URL = process.env.NOBLE_RPC_WS_URL || 'https://noble-r
  * Holds the Postgres URL to connect to
  */
 export const DB_URL = process.env.DB_URL
+
+/**
+ * Holds the Fusdc Configuration Endpoint
+ */
+export const FUSDC_CONFIG_ENDPOINT = 'https://fastusdc-configurations.agoric.net'
 
 /**
  * Gets the chain config from an endpoint
