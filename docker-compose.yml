@@ -47,6 +47,7 @@ services:
   otel:
     image: ghcr.io/agoric/ocw-otel-logs
     restart: unless-stopped
+    environment:
       - OCW_NAME=operator-name
     volumes:
       - ./logs.log:/var/log/app/logfile.log
