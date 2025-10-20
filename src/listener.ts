@@ -77,8 +77,14 @@ export function listen(chain: ChainConfig) {
 
     const maxStateHeight = Math.max(currentDbHeight, currentMetricHeight)
     const currentHeight = maxStateHeight > 0 ? maxStateHeight : getChainFromConfig(chain.name)?.startHeight || 0;
+    logger.debug(`Current height for ${chain.name}: ${currentHeight}`);
 
-    // Only perform backfill if the WS subsription skips a hieght
+    if(blockNumber <= currentHeight) {
+      logger.debug(`Block ${blockNumber} on ${chain.name} is already processed. Skipping...`)
+      return;
+    }
+
+    // Only perform backfill if the WS subsription skips a height
     if (blockNumber > currentHeight + 1) {
       logger.debug(`Current height for ${chain.name}: DB -> ${currentDbHeight}, State -> ${currentMetricHeight}, Max -> ${maxStateHeight}`)
       logger.info(`Backfilling for ${chain.name} from ${currentHeight + 1}. This happened because there were missed blocks from WS before block ${blockNumber}.`)
@@ -87,7 +93,7 @@ export function listen(chain: ChainConfig) {
     }
 
     const transactions = await getTransactionsToBeSentForChain(chain.name, blockNumber)
-    logger.debug(`Found ${transactions.length} unsubmitted transactions on ${chain.name}`)
+    logger.debug(`Found ${transactions.length} unsubmitted transactions on ${chain.name} on height ${blockNumber}`)
     // At this point, backfilling is complete and transactions are added to the DB
     // We can set the height here before the submissions just in case submissions is slow to avoid backfilling again if a new block comes in before submissions are finished
     setRpcAlive(chain.name, true);

@@ -108,6 +108,7 @@ export const setRpcAlive = (network: string, isAlive: boolean): void => {
  * @param height - The block height to be set for the specified network.
  */
 export const setRpcBlockHeight = (network: string, height: number): void => {
+    logger.debug(`Updating RPC Height metric for ${network} to height ${height}`);
     rpcBlockHeight.set({ network }, height);
 };
 
