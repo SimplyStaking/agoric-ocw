@@ -97,6 +97,8 @@ export async function backfillChain(
     const blockTotals = await getBlockSums(chain.name, latestBlockNumber, vStoragePolicy.chainPolicies[chain.name].rateLimits.blockWindowSize)
     setChainEntries(chain.name, blockTotals.blockSums)
 
+    logger.debug(`Backfilled on ${chain.name} from block ${fromBlock} to block ${latestBlockNumber}`)
+
   } catch (err) {
     logger.error(`Error fetching backfilled logs from ${chain.name}: ${err}`);
   }
