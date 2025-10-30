@@ -15,6 +15,72 @@ export let blockRangeAmountState: BlockRangeAmountState = {};
 // Holds timestamp of latest block for a chain
 export let blockHeightUpdateTimestampState: BlockHeightUpdateTimestamp = {}
 
+// Tracks blocks currently being processed per chain
+export const inProgressBlocksByChain: { [chain: string]: Set<number> } = {}
+
+// Tracks a rolling window of recently handled blocks per chain
+export const recentBlocksByChain: { [chain: string]: number[] } = {}
+
+// Max number of recent blocks to retain per chain
+const MAX_RECENT_BLOCKS = 10
+
+/**
+ * Returns true if the given block for the chain was handled recently
+ * within the rolling window.
+ *
+ * @param chain The chain identifier
+ * @param block The block number to check
+ * @returns true if the block is present in the recent window; otherwise false
+ */
+export function isBlockRecentlyHandled(chain: string, block: number): boolean {
+    const recent = recentBlocksByChain[chain]
+    return !!recent && recent.includes(block)
+}
+
+/**
+ * Marks a block as in-progress for a chain.
+ *
+ * @param chain The chain identifier
+ * @param block The block number to mark
+ * @returns true if the mark was acquired; false if it was already in progress
+ */
+export function markBlockInProgress(chain: string, block: number): boolean {
+    if (!inProgressBlocksByChain[chain]) {
+        inProgressBlocksByChain[chain] = new Set<number>()
+    }
+    const set = inProgressBlocksByChain[chain]
+    if (set.has(block)) {
+        return false
+    }
+    set.add(block)
+    return true
+}
+
+/**
+ * Completes processing for a block: removes the in-progress mark and appends
+ * it to the recent blocks queue, trimming to a constant-sized window.
+ *
+ * @param chain The chain identifier
+ * @param block The block number that completed processing
+ * @returns void
+ */
+export function completeBlockProcessing(chain: string, block: number): void {
+    if (inProgressBlocksByChain[chain]) {
+        inProgressBlocksByChain[chain].delete(block)
+    }
+    if (!recentBlocksByChain[chain]) {
+        recentBlocksByChain[chain] = []
+    }
+    const queue = recentBlocksByChain[chain]
+    // Avoid duplicates in the recent list
+    if (!queue.includes(block)) {
+        queue.push(block)
+    }
+    while (queue.length > MAX_RECENT_BLOCKS) {
+        queue.shift()
+    }
+}
+
 /**
  * Fetches account details from the specified endpoint and extracts
  * the account number and sequence.

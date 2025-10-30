@@ -10,7 +10,7 @@ import { vStoragePolicy } from './lib/agoric';
 import { getAllHeights, getTransactionsToBeSentForChain, setHeightForChain } from './lib/db';
 import { backfillChain } from './backfill';
 import { PROD } from './constants';
-import { addBlockRangeStateEntry, getTotalSumForChainBlockRangeAmount, setBlockHeightUpdateTimestamp } from './state';
+import { addBlockRangeStateEntry, completeBlockProcessing, getTotalSumForChainBlockRangeAmount, isBlockRecentlyHandled, markBlockInProgress, setBlockHeightUpdateTimestamp } from './state';
 import { submissionQueue } from './queue';
 
 /**
@@ -66,67 +66,82 @@ export function listen(chain: ChainConfig) {
   wsProvider.on("block", async (blockNumber) => {
     logger.debug(`New block from ${chain.name}: ${blockNumber}`)
 
-    // Get heights from db
-    const currentDBHeights = await getAllHeights()
-    let currentDbHeight = currentDBHeights ? currentDBHeights[chain.name] : 0
-    let currentMetricHeight = await getRpcBlockHeight(chain.name)
-    
-    // Change to 0 if NaN
-    currentDbHeight = isNaN(currentDbHeight) ? 0 : currentDbHeight
-    currentMetricHeight = isNaN(currentMetricHeight) ? 0 : currentMetricHeight
-
-    const maxStateHeight = Math.max(currentDbHeight, currentMetricHeight)
-    const currentHeight = maxStateHeight > 0 ? maxStateHeight : getChainFromConfig(chain.name)?.startHeight || 0;
-    logger.debug(`Current height for ${chain.name}: ${currentHeight}`);
-
-    if(blockNumber <= currentHeight) {
-      logger.debug(`Block ${blockNumber} on ${chain.name} is already processed. Skipping...`)
+    // Skip if this block was recently handled
+    if (isBlockRecentlyHandled(chain.name, blockNumber)) {
+      logger.debug(`Block ${blockNumber} on ${chain.name} was recently handled. Skipping...`)
       return;
     }
 
-    // Only perform backfill if the WS subsription skips a height
-    if (blockNumber > currentHeight + 1) {
-      logger.debug(`Current height for ${chain.name}: DB -> ${currentDbHeight}, State -> ${currentMetricHeight}, Max -> ${maxStateHeight}`)
-      logger.info(`Backfilling for ${chain.name} from ${currentHeight + 1}. This happened because there were missed blocks from WS before block ${blockNumber}.`)
-      const chainConfig = await getChainFromConfig(chain.name)
-      await backfillChain(chainConfig!, currentHeight + 1, blockNumber)
+    // Ensure block is not already in progress
+    if (!markBlockInProgress(chain.name, blockNumber)) {
+      logger.debug(`Block ${blockNumber} on ${chain.name} is already in progress. Skipping...`)
+      return;
     }
 
-    const transactions = await getTransactionsToBeSentForChain(chain.name, blockNumber)
-    logger.debug(`Found ${transactions.length} unsubmitted transactions on ${chain.name} on height ${blockNumber}`)
-    // At this point, backfilling is complete and transactions are added to the DB
-    // We can set the height here before the submissions just in case submissions is slow to avoid backfilling again if a new block comes in before submissions are finished
-    setRpcAlive(chain.name, true);
-    setRpcBlockHeight(chain.name, blockNumber)
-    setBlockHeightUpdateTimestamp(chain.name);
+    try {
+      // Get heights from db
+      const currentDBHeights = await getAllHeights()
+      let currentDbHeight = currentDBHeights ? currentDBHeights[chain.name] : 0
+      let currentMetricHeight = await getRpcBlockHeight(chain.name)
+      
+      // Change to 0 if NaN
+      currentDbHeight = isNaN(currentDbHeight) ? 0 : currentDbHeight
+      currentMetricHeight = isNaN(currentMetricHeight) ? 0 : currentMetricHeight
 
-    // Set height in DB
-    await setHeightForChain(chain.name, blockNumber);
+      const maxStateHeight = Math.max(currentDbHeight, currentMetricHeight)
+      const currentHeight = maxStateHeight > 0 ? maxStateHeight : getChainFromConfig(chain.name)?.startHeight || 0;
+      logger.debug(`Current height for ${chain.name}: ${currentHeight}`);
 
-    // For each transaction to be submitted, submit
-    for (const transaction of transactions) {
-      const evidence = {
-        amount: transaction.amount,
-        status: TransactionStatus.CONFIRMED,
-        blockHash: transaction.blockHash,
-        blockNumber: transaction.blockNumber,
-        forwardingAddress: transaction.forwardingAddress,
-        forwardingChannel: transaction.forwardingChannel,
-        recipientAddress: transaction.recipientAddress,
-        txHash: transaction.transactionHash,
-        chainId: vStoragePolicy.chainPolicies[transaction.chain].chainId,
-        sender: transaction.sender,
-        blockTimestamp: transaction.blockTimestamp
+      if(blockNumber <= currentHeight) {
+        logger.debug(`Block ${blockNumber} on ${chain.name} is already processed. Skipping...`)
+      } else {
+        // Only perform backfill if the WS subsription skips a height
+        if (blockNumber > currentHeight + 1) {
+          logger.debug(`Current height for ${chain.name}: DB -> ${currentDbHeight}, State -> ${currentMetricHeight}, Max -> ${maxStateHeight}`)
+          logger.info(`Backfilling for ${chain.name} from ${currentHeight + 1}. This happened because there were missed blocks from WS before block ${blockNumber}.`)
+          const chainConfig = await getChainFromConfig(chain.name)
+          await backfillChain(chainConfig!, currentHeight + 1, blockNumber)
+        }
+
+        const transactions = await getTransactionsToBeSentForChain(chain.name, blockNumber)
+        logger.debug(`Found ${transactions.length} unsubmitted transactions on ${chain.name} on height ${blockNumber}`)
+        // At this point, backfilling is complete and transactions are added to the DB
+        // We can set the height here before the submissions just in case submissions is slow to avoid backfilling again if a new block comes in before submissions are finished
+        setRpcAlive(chain.name, true);
+        setRpcBlockHeight(chain.name, blockNumber)
+        setBlockHeightUpdateTimestamp(chain.name);
+
+        // Set height in DB
+        await setHeightForChain(chain.name, blockNumber);
+
+        // For each transaction to be submitted, submit
+        for (const transaction of transactions) {
+          const evidence = {
+            amount: transaction.amount,
+            status: TransactionStatus.CONFIRMED,
+            blockHash: transaction.blockHash,
+            blockNumber: transaction.blockNumber,
+            forwardingAddress: transaction.forwardingAddress,
+            forwardingChannel: transaction.forwardingChannel,
+            recipientAddress: transaction.recipientAddress,
+            txHash: transaction.transactionHash,
+            chainId: vStoragePolicy.chainPolicies[transaction.chain].chainId,
+            sender: transaction.sender,
+            blockTimestamp: transaction.blockTimestamp
+          }
+          submissionQueue.addToQueue(evidence, transaction.risksIdentified)
+        }
+
+        // Update block range state with new block
+        addBlockRangeStateEntry(chain.name, blockNumber, vStoragePolicy.chainPolicies[chain.name].rateLimits.blockWindowSize)
+
+        // Update current block range
+        const currentBlockRangeAmount = getTotalSumForChainBlockRangeAmount(chain.name)
+        setCurrentBlockRangeAmount(chain.name, currentBlockRangeAmount)
       }
-      submissionQueue.addToQueue(evidence, transaction.risksIdentified)
+    } finally {
+      completeBlockProcessing(chain.name, blockNumber)
     }
-
-    // Update block range state with new block
-    addBlockRangeStateEntry(chain.name, blockNumber, vStoragePolicy.chainPolicies[chain.name].rateLimits.blockWindowSize)
-
-    // Update current block range
-    const currentBlockRangeAmount = getTotalSumForChainBlockRangeAmount(chain.name)
-    setCurrentBlockRangeAmount(chain.name, currentBlockRangeAmount)
   });
 
 }
