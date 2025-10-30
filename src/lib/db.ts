@@ -397,13 +397,23 @@ export const getAllHeights = async (): Promise<Record<string, number> | null> =>
 };
 
 /**
- * Sets the block height for a specific network.
+ * Sets the block height for a specific network only if the new height is greater
+ * than the currently stored height.
  * @param {string} chain - The blockchain network (e.g., 'ethereum').
- * @param {number} height - The block height to set.
+ * @param {number} height - The new block height.
  * @returns {Promise<boolean>} - Returns true if updated or created; false otherwise.
  */
 export const setHeightForChain = async (chain: string, height: number): Promise<boolean> => {
     logger.debug(`Updating DB RPC height state for ${chain} to height ${height}`);
+    // Read current stored height
+    const currentHeights = await getAllHeights();
+    const current = currentHeights ? currentHeights[chain] : undefined;
+
+    // Do nothing if existing height is defined and >= new height
+    if (typeof current === 'number' && height <= current) {
+        return false;
+    }
+
     const updateResult = await State.updateOne(
         { _id: 'node-state' },
         {
