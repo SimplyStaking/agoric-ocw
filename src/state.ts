@@ -15,6 +15,42 @@ export let blockRangeAmountState: BlockRangeAmountState = {};
 // Holds timestamp of latest block for a chain
 export let blockHeightUpdateTimestampState: BlockHeightUpdateTimestamp = {}
 
+// Tracks backfill activity per chain
+const backfillingByChain: { [chain: string]: boolean } = {}
+
+/**
+ * Checks whether a backfill is currently running for a chain.
+ *
+ * @param chain The chain identifier
+ * @returns true if backfill is in progress; otherwise false
+ */
+export function isBackfilling(chain: string): boolean {
+    return !!backfillingByChain[chain]
+}
+
+/**
+ * Attempts to mark a chain as backfilling.
+ *
+ * @param chain The chain identifier
+ * @returns true if successfully marked (was not already backfilling), false otherwise
+ */
+export function startBackfill(chain: string): boolean {
+    if (backfillingByChain[chain]) {
+        return false
+    }
+    backfillingByChain[chain] = true
+    return true
+}
+
+/**
+ * Clears backfill state for a chain.
+ *
+ * @param chain The chain identifier
+ */
+export function completeBackfill(chain: string): void {
+    backfillingByChain[chain] = false
+}
+
 // Tracks blocks currently being processed per chain
 export const inProgressBlocksByChain: { [chain: string]: Set<number> } = {}
 

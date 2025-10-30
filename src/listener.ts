@@ -10,7 +10,7 @@ import { vStoragePolicy } from './lib/agoric';
 import { getAllHeights, getTransactionsToBeSentForChain, setHeightForChain } from './lib/db';
 import { backfillChain } from './backfill';
 import { PROD } from './constants';
-import { addBlockRangeStateEntry, completeBlockProcessing, getTotalSumForChainBlockRangeAmount, isBlockRecentlyHandled, markBlockInProgress, setBlockHeightUpdateTimestamp } from './state';
+import { addBlockRangeStateEntry, completeBackfill, completeBlockProcessing, getTotalSumForChainBlockRangeAmount, isBackfilling, isBlockRecentlyHandled, markBlockInProgress, setBlockHeightUpdateTimestamp, startBackfill } from './state';
 import { submissionQueue } from './queue';
 
 /**
@@ -98,9 +98,19 @@ export function listen(chain: ChainConfig) {
         // Only perform backfill if the WS subsription skips a height
         if (blockNumber > currentHeight + 1) {
           logger.debug(`Current height for ${chain.name}: DB -> ${currentDbHeight}, State -> ${currentMetricHeight}, Max -> ${maxStateHeight}`)
-          logger.info(`Backfilling for ${chain.name} from ${currentHeight + 1}. This happened because there were missed blocks from WS before block ${blockNumber}.`)
-          const chainConfig = await getChainFromConfig(chain.name)
-          await backfillChain(chainConfig!, currentHeight + 1, blockNumber)
+          if (isBackfilling(chain.name)) {
+            logger.info(`Backfill already in progress for ${chain.name}. Skipping new backfill up to ${blockNumber}.`)
+          } else {
+            logger.info(`Backfilling for ${chain.name} from ${currentHeight + 1}. This happened because there were missed blocks from WS before block ${blockNumber}.`)
+            const chainConfig = await getChainFromConfig(chain.name)
+            if (startBackfill(chain.name)) {
+              try {
+                await backfillChain(chainConfig!, currentHeight + 1, blockNumber)
+              } finally {
+                completeBackfill(chain.name)
+              }
+            }
+          }
         }
 
         const transactions = await getTransactionsToBeSentForChain(chain.name, blockNumber)

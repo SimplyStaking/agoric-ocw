@@ -404,7 +404,6 @@ export const getAllHeights = async (): Promise<Record<string, number> | null> =>
  * @returns {Promise<boolean>} - Returns true if updated or created; false otherwise.
  */
 export const setHeightForChain = async (chain: string, height: number): Promise<boolean> => {
-    logger.debug(`Updating DB RPC height state for ${chain} to height ${height}`);
     // Read current stored height
     const currentHeights = await getAllHeights();
     const current = currentHeights ? currentHeights[chain] : undefined;
@@ -413,6 +412,8 @@ export const setHeightForChain = async (chain: string, height: number): Promise<
     if (typeof current === 'number' && height <= current) {
         return false;
     }
+
+    logger.debug(`Updating DB RPC height state for ${chain} to height ${height}`);
 
     const updateResult = await State.updateOne(
         { _id: 'node-state' },
