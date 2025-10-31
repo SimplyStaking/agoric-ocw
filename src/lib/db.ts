@@ -18,7 +18,9 @@ const connectDB = async (): Promise<void> => {
     try {
         // Connect to MongoDB using the connection string from config or fallback to localhost
         let url = DB_URL || 'mongodb://localhost:27017/agoricOCW'
-        await mongoose.connect(url);
+        await mongoose.connect(url, {
+            socketTimeoutMS: 10000 // 10 seconds
+          });
         isConnected = true;  // Set connection flag to true once connected
         logger.debug(`Connected to MongoDB @ ${url}`);
     } catch (error) {
