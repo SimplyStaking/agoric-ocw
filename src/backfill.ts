@@ -106,6 +106,8 @@ export async function backfillChain(
         logger.error(`Error processing backfilled logs from ${chain.name}: ${err}`);
       }
     }
+
+    logger.debug(`Finished processing logs on ${chain.name} from block ${fromBlock} to block ${latestBlockNumber} after backfill`)
     // Store height in DB after backfill if a log is found
     await setHeightForChain(chain.name, latestBlockNumber);
     logger.debug(`Set height for ${chain.name} to ${latestBlockNumber} after backfill`)  

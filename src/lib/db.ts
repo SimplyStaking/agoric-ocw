@@ -404,12 +404,16 @@ export const getAllHeights = async (): Promise<Record<string, number> | null> =>
  * @returns {Promise<boolean>} - Returns true if updated or created; false otherwise.
  */
 export const setHeightForChain = async (chain: string, height: number): Promise<boolean> => {
+    logger.debug(`Setting height for ${chain} to ${height}`)
     // Read current stored height
     const currentHeights = await getAllHeights();
     const current = currentHeights ? currentHeights[chain] : undefined;
 
+    logger.debug(`Current height for ${chain} is ${current} of type ${typeof current}`)
+
     // Do nothing if existing height is defined and >= new height
     if (typeof current === 'number' && height <= current) {
+        logger.debug(`Height for ${chain} is already set to ${current} and is greater than or equal to ${height}. Skipping update.`)
         return false;
     }
 
