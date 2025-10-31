@@ -10,7 +10,7 @@ import { vStoragePolicy } from './lib/agoric';
 import { getAllHeights, getTransactionsToBeSentForChain, setHeightForChain } from './lib/db';
 import { backfillChain } from './backfill';
 import { PROD } from './constants';
-import { addBlockRangeStateEntry, completeBackfill, completeBlockProcessing, getTotalSumForChainBlockRangeAmount, isBackfilling, isBlockRecentlyHandled, markBlockInProgress, setBlockHeightUpdateTimestamp, startBackfill } from './state';
+import { addBlockRangeStateEntry, completeBackfill, completeBlockProcessing, getTotalSumForChainBlockRangeAmount, isBackfilling, isBlockRecentlyHandled, markBlockInProgress, setBlockHeightUpdateTimestamp, setLastWsBlock, startBackfill } from './state';
 import { submissionQueue } from './queue';
 
 /**
@@ -65,6 +65,9 @@ export function listen(chain: ChainConfig) {
   // Listen for new blocks
   wsProvider.on("block", async (blockNumber) => {
     logger.debug(`New block from ${chain.name}: ${blockNumber}`)
+
+    // Set last WS block instantly
+    setLastWsBlock(chain.name, blockNumber)
 
     // Skip if this block was recently handled
     if (isBlockRecentlyHandled(chain.name, blockNumber)) {

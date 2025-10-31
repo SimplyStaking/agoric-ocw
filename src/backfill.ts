@@ -8,7 +8,7 @@ import { Hex } from "viem";
 import { processCCTPBurnEventLog } from "./processor";
 import { setRpcAlive } from "./metrics";
 import { vStoragePolicy } from "./lib/agoric";
-import { setChainEntries } from "./state";
+import { getLastWsBlock, setChainEntries } from "./state";
 import { PROD } from "./constants";
 
 /**
@@ -28,17 +28,31 @@ export async function backfillChain(
 
   // Get logs for the 'DepositForBurn' event from the specified block onwards
   try {
-    const latestBlockNumber = toBlock ? toBlock : await wsProvider.getBlockNumber();
-    logger.debug(`Getting event logs on ${chain.name} from block ${fromBlock} to block ${latestBlockNumber}`)
+    const wsLatestBlock = await wsProvider.getBlockNumber();
+    const lastWsBlockSeen = getLastWsBlock(chain.name);
+    // Use max of WS provider latest block and last WS block seen by listener
+    const latestBlockNumber = toBlock ? toBlock : Math.max(
+      wsLatestBlock,
+      lastWsBlockSeen || 0
+    );
+    logger.debug(`Getting event logs on ${chain.name} from block ${fromBlock} to block ${latestBlockNumber} (WS provider: ${wsLatestBlock}, Last WS block seen: ${lastWsBlockSeen || 'none'})`)
 
-    const logs = await wsProvider.getLogs({
-      fromBlock, // Starting block number
-      toBlock: latestBlockNumber, // You can specify a `toBlock` number if needed
-      address: ENV == PROD ? vStoragePolicy.chainPolicies[chain.name].cctpTokenMessengerAddress : chain.contractAddress, // Filter by contract address
-      topics: [
-        ethers.id(vStoragePolicy.eventFilter) // This is the event signature hash
-      ]
+    // Create a timeout promise that rejects after 60 seconds
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error(`getLogs timeout after 60s for ${chain.name}`)), 60000);
     });
+
+    const logs = await Promise.race([
+      wsProvider.getLogs({
+        fromBlock, // Starting block number
+        toBlock: latestBlockNumber, // You can specify a `toBlock` number if needed
+        address: ENV == PROD ? vStoragePolicy.chainPolicies[chain.name].cctpTokenMessengerAddress : chain.contractAddress, // Filter by contract address
+        topics: [
+          ethers.id(vStoragePolicy.eventFilter) // This is the event signature hash
+        ]
+      }),
+      timeoutPromise
+    ]);
 
     // Process each log
     for (const log of logs) {

@@ -15,6 +15,29 @@ export let blockRangeAmountState: BlockRangeAmountState = {};
 // Holds timestamp of latest block for a chain
 export let blockHeightUpdateTimestampState: BlockHeightUpdateTimestamp = {}
 
+// Tracks the last block seen by websocket per chain
+const lastWsBlockByChain: { [chain: string]: number } = {}
+
+/**
+ * Gets the last block number seen by websocket for a chain.
+ *
+ * @param chain The chain identifier
+ * @returns The last block number seen, or undefined if none
+ */
+export function getLastWsBlock(chain: string): number | undefined {
+    return lastWsBlockByChain[chain]
+}
+
+/**
+ * Sets the last block number seen by websocket for a chain.
+ *
+ * @param chain The chain identifier
+ * @param block The block number to record
+ */
+export function setLastWsBlock(chain: string, block: number): void {
+    lastWsBlockByChain[chain] = block
+}
+
 // Tracks backfill activity per chain
 const backfillingByChain: { [chain: string]: boolean } = {}
 
