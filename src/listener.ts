@@ -97,12 +97,14 @@ export function listen(chain: ChainConfig) {
 
       if(blockNumber <= currentHeight) {
         logger.debug(`Block ${blockNumber} on ${chain.name} is already processed. Skipping...`)
+        return;
       } else {
         // Only perform backfill if the WS subsription skips a height
         if (blockNumber > currentHeight + 1) {
           logger.debug(`Current height for ${chain.name}: DB -> ${currentDbHeight}, State -> ${currentMetricHeight}, Max -> ${maxStateHeight}`)
           if (isBackfilling(chain.name)) {
             logger.info(`Backfill already in progress for ${chain.name}. Skipping new backfill up to ${blockNumber}.`)
+            return;
           } else {
             logger.info(`Backfilling for ${chain.name} from ${currentHeight + 1}. This happened because there were missed blocks from WS before block ${blockNumber}.`)
             const chainConfig = await getChainFromConfig(chain.name)

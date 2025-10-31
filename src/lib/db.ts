@@ -606,6 +606,7 @@ export const getBlockSums = async (
     blockNumber: number,
     blockRange: number
 ) => {
+    logger.debug(`Getting block sums for ${chain} from block ${blockNumber} to block ${blockNumber + blockRange - 1}`)
     // Define the range of blocks to query
     const blocks = Array.from({ length: blockRange }, (_, i) => blockNumber - i).reverse();
 
@@ -644,6 +645,8 @@ export const getBlockSums = async (
 
     // Calculate the total sum
     const totalSum = blockSums.reduce((acc, entry) => acc + entry.sum, 0);
+
+    logger.debug(`Got block sums for ${chain} from block ${blockNumber} to block ${blockNumber + blockRange - 1}`)
 
     return { blockSums, totalSum };
 };

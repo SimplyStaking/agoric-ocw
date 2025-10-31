@@ -108,6 +108,7 @@ export async function backfillChain(
     }
     // Store height in DB after backfill if a log is found
     await setHeightForChain(chain.name, latestBlockNumber);
+    logger.debug(`Set height for ${chain.name} to ${latestBlockNumber} after backfill`)  
 
     // Get totals for latest blocks
     const blockTotals = await getBlockSums(chain.name, latestBlockNumber, vStoragePolicy.chainPolicies[chain.name].rateLimits.blockWindowSize)
