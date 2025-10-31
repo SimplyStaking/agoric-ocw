@@ -71,6 +71,7 @@ export function startBackfill(chain: string): boolean {
  * @param chain The chain identifier
  */
 export function completeBackfill(chain: string): void {
+    logger.debug(`Completing backfill for ${chain}`)
     backfillingByChain[chain] = false
 }
 
