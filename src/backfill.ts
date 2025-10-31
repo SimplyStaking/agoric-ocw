@@ -54,6 +54,8 @@ export async function backfillChain(
       timeoutPromise
     ]);
 
+    logger.debug(`Obtained event logs on ${chain.name} from block ${fromBlock} to block ${latestBlockNumber}`)
+
     // Process each log
     for (const log of logs) {
       try {
