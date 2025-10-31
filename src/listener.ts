@@ -106,7 +106,18 @@ export function listen(chain: ChainConfig) {
           if (startBackfill(chain.name)) {
             try {
               logger.debug(`Backfilling for ${chain.name} from ${currentHeight + 1}. This happened because there were missed blocks from WS before block ${blockNumber}.`)
-              await backfillChain(chainConfig!, currentHeight + 1, blockNumber)
+              
+              // Create a timeout promise that rejects after 60 seconds
+              const timeoutPromise = new Promise<never>((_, reject) => {
+                setTimeout(() => reject(new Error(`Backfill timeout after 60s for ${chain.name}`)), 60000);
+              });
+
+              await Promise.race([
+                backfillChain(chainConfig!, currentHeight + 1, blockNumber),
+                timeoutPromise
+              ])
+            } catch (err) {
+              logger.error(`Error during backfill for ${chain.name}: ${err}`);
             } finally {
               completeBackfill(chain.name)
             }

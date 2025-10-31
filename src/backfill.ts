@@ -37,22 +37,14 @@ export async function backfillChain(
     );
     logger.debug(`Getting event logs on ${chain.name} from block ${fromBlock} to block ${latestBlockNumber} (WS provider: ${wsLatestBlock}, Last WS block seen: ${lastWsBlockSeen || 'none'})`)
 
-    // Create a timeout promise that rejects after 60 seconds
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error(`getLogs timeout after 60s for ${chain.name}`)), 60000);
+    const logs = await wsProvider.getLogs({
+      fromBlock, // Starting block number
+      toBlock: latestBlockNumber, // You can specify a `toBlock` number if needed
+      address: ENV == PROD ? vStoragePolicy.chainPolicies[chain.name].cctpTokenMessengerAddress : chain.contractAddress, // Filter by contract address
+      topics: [
+        ethers.id(vStoragePolicy.eventFilter) // This is the event signature hash
+      ]
     });
-
-    const logs = await Promise.race([
-      wsProvider.getLogs({
-        fromBlock, // Starting block number
-        toBlock: latestBlockNumber, // You can specify a `toBlock` number if needed
-        address: ENV == PROD ? vStoragePolicy.chainPolicies[chain.name].cctpTokenMessengerAddress : chain.contractAddress, // Filter by contract address
-        topics: [
-          ethers.id(vStoragePolicy.eventFilter) // This is the event signature hash
-        ]
-      }),
-      timeoutPromise
-    ]);
 
     logger.debug(`Obtained event logs on ${chain.name} from block ${fromBlock} to block ${latestBlockNumber}`)
 
