@@ -10,7 +10,7 @@ import { vStoragePolicy } from './lib/agoric';
 import { getAllHeights, getTransactionsToBeSentForChain, setHeightForChain } from './lib/db';
 import { backfillChain } from './backfill';
 import { PROD } from './constants';
-import { addBlockRangeStateEntry, completeBackfill, completeBlockProcessing, getTotalSumForChainBlockRangeAmount, isBackfilling, isBlockRecentlyHandled, markBlockInProgress, setBlockHeightUpdateTimestamp, setLastWsBlock, startBackfill } from './state';
+import { addBlockRangeStateEntry, completeBackfill, completeBlockProcessing, getTotalSumForChainBlockRangeAmount, isBlockRecentlyHandled, markBlockInProgress, setBlockHeightUpdateTimestamp, setLastWsBlock, startBackfill } from './state';
 import { submissionQueue } from './queue';
 
 /**
@@ -102,19 +102,17 @@ export function listen(chain: ChainConfig) {
         // Only perform backfill if the WS subsription skips a height
         if (blockNumber > currentHeight + 1) {
           logger.debug(`Current height for ${chain.name}: DB -> ${currentDbHeight}, State -> ${currentMetricHeight}, Max -> ${maxStateHeight}`)
-          if (isBackfilling(chain.name)) {
+          const chainConfig = await getChainFromConfig(chain.name)
+          if (startBackfill(chain.name)) {
+            try {
+              logger.debug(`Backfilling for ${chain.name} from ${currentHeight + 1}. This happened because there were missed blocks from WS before block ${blockNumber}.`)
+              await backfillChain(chainConfig!, currentHeight + 1, blockNumber)
+            } finally {
+              completeBackfill(chain.name)
+            }
+          } else {
             logger.info(`Backfill already in progress for ${chain.name}. Skipping new backfill up to ${blockNumber}.`)
             return;
-          } else {
-            logger.info(`Backfilling for ${chain.name} from ${currentHeight + 1}. This happened because there were missed blocks from WS before block ${blockNumber}.`)
-            const chainConfig = await getChainFromConfig(chain.name)
-            if (startBackfill(chain.name)) {
-              try {
-                await backfillChain(chainConfig!, currentHeight + 1, blockNumber)
-              } finally {
-                completeBackfill(chain.name)
-              }
-            }
           }
         }
 
